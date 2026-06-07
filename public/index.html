@@ -6,21 +6,29 @@
     <title>Telegram Downloader Admin</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="/config.js"></script>
+    <script src="/i18n.js"></script>
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Admin Console</p>
+          <p class="eyebrow" data-i18n="header.eyebrow">Admin Console</p>
           <h1>Telegram Downloader</h1>
         </div>
         <div class="top-actions">
+          <label class="select-control" for="languageSelect">
+            <span data-i18n="control.language">Language</span>
+            <select id="languageSelect">
+              <option value="en">English</option>
+              <option value="zh-CN">中文</option>
+            </select>
+          </label>
           <label class="toggle-control" for="refreshEnabled">
             <input id="refreshEnabled" type="checkbox" checked>
-            <span>Live refresh</span>
+            <span data-i18n="control.live_refresh">Live refresh</span>
           </label>
-          <label class="refresh-control" for="refreshInterval">
-            <span>Interval</span>
+          <label class="select-control" for="refreshInterval">
+            <span data-i18n="control.interval">Interval</span>
             <select id="refreshInterval">
               <option value="500">0.5s</option>
               <option value="1000">1s</option>
@@ -29,25 +37,25 @@
               <option value="5000">5s</option>
             </select>
           </label>
-          <div class="status-pill" id="connectionStatus">Connecting</div>
+          <div class="status-pill" id="connectionStatus" data-i18n="connection.connecting">Connecting</div>
         </div>
       </header>
 
       <section class="metrics" aria-label="Status metrics">
         <article class="metric">
-          <span>Downloading</span>
+          <span data-i18n="metric.downloading">Downloading</span>
           <strong id="downloadingCount">0</strong>
         </article>
         <article class="metric">
-          <span>Queued</span>
+          <span data-i18n="metric.queued">Queued</span>
           <strong id="queuedCount">0</strong>
         </article>
         <article class="metric">
-          <span>CPU</span>
+          <span data-i18n="metric.cpu">CPU</span>
           <strong id="cpuValue">0%</strong>
         </article>
         <article class="metric">
-          <span>Memory</span>
+          <span data-i18n="metric.memory">Memory</span>
           <strong id="memoryValue">0%</strong>
         </article>
       </section>
@@ -55,22 +63,22 @@
       <section class="grid">
         <section class="panel downloads-panel">
           <div class="panel-head">
-            <h2>Download Queue</h2>
+            <h2 data-i18n="downloads.title">Download Queue</h2>
             <span id="lastUpdated">--</span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Speed</th>
-                  <th>ETA</th>
+                  <th data-i18n="table.file">File</th>
+                  <th data-i18n="table.status">Status</th>
+                  <th data-i18n="table.progress">Progress</th>
+                  <th data-i18n="table.speed">Speed</th>
+                  <th data-i18n="table.eta">ETA</th>
                 </tr>
               </thead>
               <tbody id="downloadRows">
-                <tr><td colspan="5" class="empty">No active downloads</td></tr>
+                <tr><td colspan="5" class="empty" data-i18n="downloads.empty">No active downloads</td></tr>
               </tbody>
             </table>
           </div>
@@ -79,35 +87,35 @@
         <aside class="side">
           <section class="panel chart-panel">
             <div class="panel-head">
-              <h2>Resource Chart</h2>
-              <span>Recent samples</span>
+              <h2 data-i18n="chart.title">Resource Chart</h2>
+              <span data-i18n="chart.samples">Recent samples</span>
             </div>
             <canvas id="resourceChart" width="640" height="280"></canvas>
             <div class="legend">
-              <span><i class="cpu"></i>CPU</span>
-              <span><i class="memory"></i>Memory</span>
+              <span><i class="cpu"></i><span data-i18n="metric.cpu">CPU</span></span>
+              <span><i class="memory"></i><span data-i18n="metric.memory">Memory</span></span>
             </div>
           </section>
 
           <section class="panel component-panel">
             <div class="panel-head">
-              <h2>Components</h2>
+              <h2 data-i18n="component.title">Components</h2>
             </div>
             <dl class="components">
               <div>
-                <dt>Downloader</dt>
+                <dt data-i18n="component.downloader">Downloader</dt>
                 <dd id="downloaderOnline">--</dd>
               </div>
               <div>
-                <dt>Bot API</dt>
+                <dt data-i18n="component.bot_api">Bot API</dt>
                 <dd id="botApiOnline">--</dd>
               </div>
               <div>
-                <dt>Bot</dt>
+                <dt data-i18n="component.bot">Bot</dt>
                 <dd id="botOnline">--</dd>
               </div>
               <div>
-                <dt>User / Chat</dt>
+                <dt data-i18n="component.user_chat">User / Chat</dt>
                 <dd id="userInfo">--</dd>
               </div>
             </dl>
@@ -115,15 +123,15 @@
 
           <section class="panel storage-panel">
             <div class="panel-head">
-              <h2>Storage</h2>
+              <h2 data-i18n="storage.title">Storage</h2>
             </div>
             <div class="storage-row">
-              <span>Download dir</span>
+              <span data-i18n="storage.download_dir">Download dir</span>
               <strong id="downloadDiskText">--</strong>
             </div>
             <div class="bar"><span id="downloadDiskBar"></span></div>
             <div class="storage-row">
-              <span>Bot API dir</span>
+              <span data-i18n="storage.bot_api_dir">Bot API dir</span>
               <strong id="botApiDiskText">--</strong>
             </div>
             <div class="bar"><span id="botApiDiskBar"></span></div>
