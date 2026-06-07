@@ -2,12 +2,15 @@ const config = window.ADMIN_UI_CONFIG || {};
 const defaultRefreshIntervalMs = Number(config.refreshIntervalMs || 1000);
 const adminToken = config.adminToken || "";
 const historyLimit = 120;
+const heartbeatTtlSeconds = 6;
 const samples = [];
 let refreshTimer = null;
+let heartbeatTimer = null;
 let refreshInFlight = false;
 
 const el = {
   connectionStatus: document.getElementById("connectionStatus"),
+  refreshEnabled: document.getElementById("refreshEnabled"),
   refreshInterval: document.getElementById("refreshInterval"),
   downloadingCount: document.getElementById("downloadingCount"),
   queuedCount: document.getElementById("queuedCount"),
@@ -26,8 +29,11 @@ const el = {
   botApiDiskBar: document.getElementById("botApiDiskBar"),
 };
 
-function headers() {
-  return adminToken ? { "X-Admin-Token": adminToken } : {};
+function requestHeaders(json = false) {
+  const result = {};
+  if (adminToken) result["X-Admin-Token"] = adminToken;
+  if (json) result["Content-Type"] = "application/json";
+  return result;
 }
 
 function formatBytes(bytes) {
@@ -44,7 +50,7 @@ function formatSpeed(bytesPerSecond) {
 
 function setBadge(target, online, text) {
   target.className = online ? "badge ok" : "badge bad";
-  target.textContent = text || (online ? "在线" : "离线");
+  target.textContent = text || (online ? "Online" : "Offline");
 }
 
 function setConnection(ok, text) {
@@ -72,7 +78,7 @@ function escapeHtml(value) {
 function renderDownloads(downloads) {
   const items = downloads.items || [];
   if (!items.length) {
-    el.downloadRows.innerHTML = '<tr><td colspan="5" class="empty">暂无下载任务</td></tr>';
+    el.downloadRows.innerHTML = '<tr><td colspan="5" class="empty">No active downloads</td></tr>';
     return;
   }
 
@@ -99,7 +105,7 @@ function renderDownloads(downloads) {
 
 function renderStorage(info, textTarget, barTarget) {
   const used = clampPercent(info && info.used_percent);
-  textTarget.textContent = `${pct(used)} · ${formatBytes(info && info.free_bytes)} 可用`;
+  textTarget.textContent = `${pct(used)} · ${formatBytes(info && info.free_bytes)} free`;
   barTarget.style.width = `${used}%`;
 }
 
@@ -166,12 +172,12 @@ function render(data) {
   el.lastUpdated.textContent = new Date().toLocaleTimeString();
 
   renderDownloads(data.downloads);
-  setBadge(el.downloaderOnline, true, "在线");
-  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `在线 · ${botApi.latency_ms}ms` : "离线");
+  setBadge(el.downloaderOnline, true, "Online");
+  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `Online · ${botApi.latency_ms}ms` : "Offline");
   setBadge(
     el.botOnline,
     Boolean(botInfo.bot && botInfo.bot.online),
-    botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : "未知",
+    botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : "Unknown",
   );
   el.userInfo.textContent = `${botInfo.configured_user_id || "--"} / ${botInfo.configured_chat_id || "--"}`;
 
@@ -186,17 +192,48 @@ function render(data) {
   renderChart();
 }
 
+async function postJson(path, payload, keepalive = false) {
+  return fetch(path, {
+    method: "POST",
+    headers: requestHeaders(true),
+    body: JSON.stringify(payload || {}),
+    keepalive,
+  });
+}
+
+function sendStopHeartbeat() {
+  const payload = JSON.stringify({ enabled: false });
+  if (!adminToken && navigator.sendBeacon) {
+    const blob = new Blob([payload], { type: "application/json" });
+    navigator.sendBeacon("/api/admin/stop", blob);
+    return;
+  }
+  postJson("/api/admin/stop", { enabled: false }, true).catch(() => {});
+}
+
+async function sendHeartbeat() {
+  if (!isLiveRefreshActive()) return;
+  try {
+    await postJson("/api/admin/heartbeat", {
+      enabled: true,
+      ttl_seconds: heartbeatTtlSeconds,
+    });
+  } catch {
+    // The normal data refresh path reports connection errors to the UI.
+  }
+}
+
 async function refresh() {
-  if (refreshInFlight) return;
+  if (!isLiveRefreshActive() || refreshInFlight) return;
   refreshInFlight = true;
   try {
-    const response = await fetch("/api/overview", { headers: headers() });
+    const response = await fetch("/api/overview", { headers: requestHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     render(data);
-    setConnection(true, "已连接");
+    setConnection(true, "Connected");
   } catch (error) {
-    setConnection(false, `连接失败: ${error.message}`);
+    setConnection(false, `Failed: ${error.message}`);
   } finally {
     refreshInFlight = false;
   }
@@ -209,16 +246,45 @@ function getSavedRefreshInterval() {
   return 1000;
 }
 
-function startRefreshLoop(intervalMs) {
+function getSavedRefreshEnabled() {
+  return localStorage.getItem("admin-webui-refresh-enabled") !== "false";
+}
+
+function isLiveRefreshActive() {
+  return el.refreshEnabled.checked && document.visibilityState === "visible";
+}
+
+function clearLoops() {
   if (refreshTimer) clearInterval(refreshTimer);
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  refreshTimer = null;
+  heartbeatTimer = null;
+}
+
+function startLoops() {
+  clearLoops();
+  if (!isLiveRefreshActive()) {
+    setConnection(false, "Paused");
+    sendStopHeartbeat();
+    return;
+  }
+
+  const intervalMs = Number(el.refreshInterval.value);
   localStorage.setItem("admin-webui-refresh-ms", String(intervalMs));
-  el.refreshInterval.value = String(intervalMs);
+  localStorage.setItem("admin-webui-refresh-enabled", String(el.refreshEnabled.checked));
+  sendHeartbeat();
   refresh();
+  heartbeatTimer = setInterval(sendHeartbeat, Math.max(1000, Math.floor((heartbeatTtlSeconds * 1000) / 2)));
   refreshTimer = setInterval(refresh, intervalMs);
 }
 
-el.refreshInterval.addEventListener("change", () => {
-  startRefreshLoop(Number(el.refreshInterval.value));
-});
+el.refreshInterval.value = String(getSavedRefreshInterval());
+el.refreshEnabled.checked = getSavedRefreshEnabled();
+el.refreshInterval.addEventListener("change", startLoops);
+el.refreshEnabled.addEventListener("change", startLoops);
+document.addEventListener("visibilitychange", startLoops);
+window.addEventListener("pagehide", sendStopHeartbeat);
+window.addEventListener("beforeunload", sendStopHeartbeat);
+window.addEventListener("freeze", sendStopHeartbeat);
 window.addEventListener("resize", renderChart);
-startRefreshLoop(getSavedRefreshInterval());
+startLoops();

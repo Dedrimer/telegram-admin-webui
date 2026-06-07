@@ -73,6 +73,14 @@ https://localhost:8443
 - `ADMIN_WEBUI_SSL_CERT`: HTTPS 证书路径，默认 `/etc/nginx/certs/tls.crt`
 - `ADMIN_WEBUI_SSL_KEY`: HTTPS 私钥路径，默认 `/etc/nginx/certs/tls.key`
 
+## 刷新与心跳
+
+页面右上角提供 `Live refresh` 开关和刷新间隔选择。开启时 WebUI 会定期请求 `/api/overview`，并向 downloader 的 Admin API 发送 heartbeat，用于启用 Admin 专用高频进度采样。
+
+关闭开关、页面隐藏、页面冻结或关闭时，WebUI 会调用 `/api/admin/stop`，通知后端停止 Admin 专用采样。即使浏览器没有成功发出停止请求，后端 heartbeat 也会在短时间内自动过期。
+
+这条 Admin 采样路径只更新 downloader 内存中的下载进度，不编辑 Telegram 消息。Telegram 消息编辑节奏仍由 downloader 的持久化 runtime settings 控制。
+
 ## API
 
 `telegram-downloader` 侧新增接口：

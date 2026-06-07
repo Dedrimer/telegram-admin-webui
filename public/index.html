@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,12 +11,16 @@
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">后台管理</p>
+          <p class="eyebrow">Admin Console</p>
           <h1>Telegram Downloader</h1>
         </div>
         <div class="top-actions">
+          <label class="toggle-control" for="refreshEnabled">
+            <input id="refreshEnabled" type="checkbox" checked>
+            <span>Live refresh</span>
+          </label>
           <label class="refresh-control" for="refreshInterval">
-            <span>刷新间隔</span>
+            <span>Interval</span>
             <select id="refreshInterval">
               <option value="500">0.5s</option>
               <option value="1000">1s</option>
@@ -25,17 +29,17 @@
               <option value="5000">5s</option>
             </select>
           </label>
-          <div class="status-pill" id="connectionStatus">连接中</div>
+          <div class="status-pill" id="connectionStatus">Connecting</div>
         </div>
       </header>
 
-      <section class="metrics" aria-label="核心状态">
+      <section class="metrics" aria-label="Status metrics">
         <article class="metric">
-          <span>下载中</span>
+          <span>Downloading</span>
           <strong id="downloadingCount">0</strong>
         </article>
         <article class="metric">
-          <span>待下载</span>
+          <span>Queued</span>
           <strong id="queuedCount">0</strong>
         </article>
         <article class="metric">
@@ -43,7 +47,7 @@
           <strong id="cpuValue">0%</strong>
         </article>
         <article class="metric">
-          <span>内存</span>
+          <span>Memory</span>
           <strong id="memoryValue">0%</strong>
         </article>
       </section>
@@ -51,22 +55,22 @@
       <section class="grid">
         <section class="panel downloads-panel">
           <div class="panel-head">
-            <h2>下载队列</h2>
+            <h2>Download Queue</h2>
             <span id="lastUpdated">--</span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>文件</th>
-                  <th>状态</th>
-                  <th>进度</th>
-                  <th>速度</th>
+                  <th>File</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                  <th>Speed</th>
                   <th>ETA</th>
                 </tr>
               </thead>
               <tbody id="downloadRows">
-                <tr><td colspan="5" class="empty">暂无下载任务</td></tr>
+                <tr><td colspan="5" class="empty">No active downloads</td></tr>
               </tbody>
             </table>
           </div>
@@ -75,19 +79,19 @@
         <aside class="side">
           <section class="panel chart-panel">
             <div class="panel-head">
-              <h2>资源曲线</h2>
-              <span>最近采样</span>
+              <h2>Resource Chart</h2>
+              <span>Recent samples</span>
             </div>
             <canvas id="resourceChart" width="640" height="280"></canvas>
             <div class="legend">
               <span><i class="cpu"></i>CPU</span>
-              <span><i class="memory"></i>内存</span>
+              <span><i class="memory"></i>Memory</span>
             </div>
           </section>
 
           <section class="panel component-panel">
             <div class="panel-head">
-              <h2>组件</h2>
+              <h2>Components</h2>
             </div>
             <dl class="components">
               <div>
@@ -103,7 +107,7 @@
                 <dd id="botOnline">--</dd>
               </div>
               <div>
-                <dt>授权用户</dt>
+                <dt>User / Chat</dt>
                 <dd id="userInfo">--</dd>
               </div>
             </dl>
@@ -111,15 +115,15 @@
 
           <section class="panel storage-panel">
             <div class="panel-head">
-              <h2>存储</h2>
+              <h2>Storage</h2>
             </div>
             <div class="storage-row">
-              <span>下载目录</span>
+              <span>Download dir</span>
               <strong id="downloadDiskText">--</strong>
             </div>
             <div class="bar"><span id="downloadDiskBar"></span></div>
             <div class="storage-row">
-              <span>Bot API 目录</span>
+              <span>Bot API dir</span>
               <strong id="botApiDiskText">--</strong>
             </div>
             <div class="bar"><span id="botApiDiskBar"></span></div>
