@@ -4,13 +4,7 @@
 
 ## 启动
 
-在 `D:\02` 根目录使用测试机 compose：
-
-```powershell
-docker compose up -d --build
-```
-
-或者在 `telegram-downloader` 仓库目录叠加可选 WebUI compose：
+在 `telegram-downloader` 仓库目录叠加可选 WebUI compose：
 
 ```powershell
 docker compose -f docker-compose.local.yml -f docker-compose.webui.yml up -d --build
