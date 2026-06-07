@@ -8,129 +8,169 @@
     <script src="/config.js"></script>
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Admin Console</p>
-          <h1>Telegram Downloader</h1>
-        </div>
-        <div class="top-actions">
-          <label class="toggle-control" for="refreshEnabled">
-            <input id="refreshEnabled" type="checkbox" checked>
-            <span>Live refresh</span>
-          </label>
-          <label class="refresh-control" for="refreshInterval">
-            <span>Interval</span>
-            <select id="refreshInterval">
-              <option value="500">0.5s</option>
-              <option value="1000">1s</option>
-              <option value="2000">2s</option>
-              <option value="3000">3s</option>
-              <option value="5000">5s</option>
-            </select>
-          </label>
-          <div class="status-pill" id="connectionStatus">Connecting</div>
-        </div>
-      </header>
-
-      <section class="metrics" aria-label="Status metrics">
-        <article class="metric">
-          <span>Downloading</span>
-          <strong id="downloadingCount">0</strong>
-        </article>
-        <article class="metric">
-          <span>Queued</span>
-          <strong id="queuedCount">0</strong>
-        </article>
-        <article class="metric">
-          <span>CPU</span>
-          <strong id="cpuValue">0%</strong>
-        </article>
-        <article class="metric">
-          <span>Memory</span>
-          <strong id="memoryValue">0%</strong>
-        </article>
-      </section>
-
-      <section class="grid">
-        <section class="panel downloads-panel">
-          <div class="panel-head">
-            <h2>Download Queue</h2>
-            <span id="lastUpdated">--</span>
+    <div class="app-frame">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">TD</div>
+          <div>
+            <strong>Downloader</strong>
+            <span>Admin Console</span>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Speed</th>
-                  <th>ETA</th>
-                </tr>
-              </thead>
-              <tbody id="downloadRows">
-                <tr><td colspan="5" class="empty">No active downloads</td></tr>
-              </tbody>
-            </table>
+        </div>
+        <nav class="nav-list" aria-label="Dashboard sections">
+          <a class="nav-item active" href="#overview"><span></span>Overview</a>
+          <a class="nav-item" href="#downloads"><span></span>Downloads</a>
+          <a class="nav-item" href="#resources"><span></span>Resources</a>
+          <a class="nav-item" href="#components"><span></span>Components</a>
+        </nav>
+        <div class="sidebar-card">
+          <span>Live monitor</span>
+          <strong id="sidebarQueueCount">0 active tasks</strong>
+        </div>
+      </aside>
+
+      <main class="content-shell">
+        <header class="topbar" id="overview">
+          <div>
+            <p class="eyebrow">Main Dashboard</p>
+            <h1>Telegram Downloader</h1>
           </div>
+          <div class="top-actions">
+            <label class="toggle-control" for="refreshEnabled">
+              <input id="refreshEnabled" type="checkbox" checked>
+              <span>Live refresh</span>
+            </label>
+            <label class="refresh-control" for="refreshInterval">
+              <span>Interval</span>
+              <select id="refreshInterval">
+                <option value="500">0.5s</option>
+                <option value="1000">1s</option>
+                <option value="2000">2s</option>
+                <option value="3000">3s</option>
+                <option value="5000">5s</option>
+              </select>
+            </label>
+            <div class="status-pill" id="connectionStatus">Connecting</div>
+          </div>
+        </header>
+
+        <section class="hero-card">
+          <div>
+            <span>Runtime snapshot</span>
+            <strong id="lastUpdated">--</strong>
+          </div>
+          <p>High-frequency admin polling is isolated from Telegram message updates.</p>
         </section>
 
-        <aside class="side">
-          <section class="panel chart-panel">
+        <section class="metrics" aria-label="Status metrics">
+          <article class="metric">
+            <span class="metric-label">Downloading</span>
+            <strong id="downloadingCount">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric-label">Queued</span>
+            <strong id="queuedCount">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric-label">CPU</span>
+            <strong id="cpuValue">0%</strong>
+          </article>
+          <article class="metric">
+            <span class="metric-label">Memory</span>
+            <strong id="memoryValue">0%</strong>
+          </article>
+        </section>
+
+        <section class="grid">
+          <section class="panel downloads-panel" id="downloads">
             <div class="panel-head">
-              <h2>Resource Chart</h2>
-              <span>Recent samples</span>
+              <div>
+                <span>Transfer state</span>
+                <h2>Download Queue</h2>
+              </div>
             </div>
-            <canvas id="resourceChart" width="640" height="280"></canvas>
-            <div class="legend">
-              <span><i class="cpu"></i>CPU</span>
-              <span><i class="memory"></i>Memory</span>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Speed</th>
+                    <th>ETA</th>
+                  </tr>
+                </thead>
+                <tbody id="downloadRows">
+                  <tr><td colspan="5" class="empty">No active downloads</td></tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
-          <section class="panel component-panel">
-            <div class="panel-head">
-              <h2>Components</h2>
-            </div>
-            <dl class="components">
-              <div>
-                <dt>Downloader</dt>
-                <dd id="downloaderOnline">--</dd>
+          <aside class="side">
+            <section class="panel chart-panel" id="resources">
+              <div class="panel-head">
+                <div>
+                  <span>Recent samples</span>
+                  <h2>Resource Chart</h2>
+                </div>
               </div>
-              <div>
-                <dt>Bot API</dt>
-                <dd id="botApiOnline">--</dd>
+              <canvas id="resourceChart" width="640" height="280"></canvas>
+              <div class="legend">
+                <span><i class="cpu"></i>CPU</span>
+                <span><i class="memory"></i>Memory</span>
               </div>
-              <div>
-                <dt>Bot</dt>
-                <dd id="botOnline">--</dd>
-              </div>
-              <div>
-                <dt>User / Chat</dt>
-                <dd id="userInfo">--</dd>
-              </div>
-            </dl>
-          </section>
+            </section>
 
-          <section class="panel storage-panel">
-            <div class="panel-head">
-              <h2>Storage</h2>
-            </div>
-            <div class="storage-row">
-              <span>Download dir</span>
-              <strong id="downloadDiskText">--</strong>
-            </div>
-            <div class="bar"><span id="downloadDiskBar"></span></div>
-            <div class="storage-row">
-              <span>Bot API dir</span>
-              <strong id="botApiDiskText">--</strong>
-            </div>
-            <div class="bar"><span id="botApiDiskBar"></span></div>
-          </section>
-        </aside>
-      </section>
-    </main>
+            <section class="panel component-panel" id="components">
+              <div class="panel-head">
+                <div>
+                  <span>Service health</span>
+                  <h2>Components</h2>
+                </div>
+              </div>
+              <dl class="components">
+                <div>
+                  <dt>Downloader</dt>
+                  <dd id="downloaderOnline">--</dd>
+                </div>
+                <div>
+                  <dt>Bot API</dt>
+                  <dd id="botApiOnline">--</dd>
+                </div>
+                <div>
+                  <dt>Bot</dt>
+                  <dd id="botOnline">--</dd>
+                </div>
+                <div>
+                  <dt>User / Chat</dt>
+                  <dd id="userInfo">--</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="panel storage-panel">
+              <div class="panel-head">
+                <div>
+                  <span>Disk usage</span>
+                  <h2>Storage</h2>
+                </div>
+              </div>
+              <div class="storage-row">
+                <span>Download dir</span>
+                <strong id="downloadDiskText">--</strong>
+              </div>
+              <div class="bar"><span id="downloadDiskBar"></span></div>
+              <div class="storage-row">
+                <span>Bot API dir</span>
+                <strong id="botApiDiskText">--</strong>
+              </div>
+              <div class="bar"><span id="botApiDiskBar"></span></div>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
     <script src="/app.js"></script>
   </body>
 </html>

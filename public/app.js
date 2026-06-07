@@ -10,6 +10,7 @@ let refreshInFlight = false;
 
 const el = {
   connectionStatus: document.getElementById("connectionStatus"),
+  sidebarQueueCount: document.getElementById("sidebarQueueCount"),
   refreshEnabled: document.getElementById("refreshEnabled"),
   refreshInterval: document.getElementById("refreshInterval"),
   downloadingCount: document.getElementById("downloadingCount"),
@@ -105,7 +106,7 @@ function renderDownloads(downloads) {
 
 function renderStorage(info, textTarget, barTarget) {
   const used = clampPercent(info && info.used_percent);
-  textTarget.textContent = `${pct(used)} · ${formatBytes(info && info.free_bytes)} free`;
+  textTarget.textContent = `${pct(used)} - ${formatBytes(info && info.free_bytes)} free`;
   barTarget.style.width = `${used}%`;
 }
 
@@ -167,13 +168,14 @@ function render(data) {
 
   el.downloadingCount.textContent = summary.downloading || 0;
   el.queuedCount.textContent = summary.queued || 0;
+  el.sidebarQueueCount.textContent = `${summary.total || 0} active tasks`;
   el.cpuValue.textContent = pct(resources.cpu_percent);
   el.memoryValue.textContent = pct(memory.used_percent);
   el.lastUpdated.textContent = new Date().toLocaleTimeString();
 
   renderDownloads(data.downloads);
   setBadge(el.downloaderOnline, true, "Online");
-  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `Online · ${botApi.latency_ms}ms` : "Offline");
+  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `Online - ${botApi.latency_ms}ms` : "Offline");
   setBadge(
     el.botOnline,
     Boolean(botInfo.bot && botInfo.bot.online),
