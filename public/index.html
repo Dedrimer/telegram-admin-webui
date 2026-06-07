@@ -14,7 +14,19 @@
           <p class="eyebrow">后台管理</p>
           <h1>Telegram Downloader</h1>
         </div>
-        <div class="status-pill" id="connectionStatus">连接中</div>
+        <div class="top-actions">
+          <label class="refresh-control" for="refreshInterval">
+            <span>刷新间隔</span>
+            <select id="refreshInterval">
+              <option value="500">0.5s</option>
+              <option value="1000">1s</option>
+              <option value="2000">2s</option>
+              <option value="3000">3s</option>
+              <option value="5000">5s</option>
+            </select>
+          </label>
+          <div class="status-pill" id="connectionStatus">连接中</div>
+        </div>
       </header>
 
       <section class="metrics" aria-label="核心状态">

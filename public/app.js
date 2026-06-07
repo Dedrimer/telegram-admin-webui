@@ -1,11 +1,14 @@
 const config = window.ADMIN_UI_CONFIG || {};
-const refreshIntervalMs = Number(config.refreshIntervalMs || 3000);
+const defaultRefreshIntervalMs = Number(config.refreshIntervalMs || 1000);
 const adminToken = config.adminToken || "";
-const historyLimit = 80;
+const historyLimit = 120;
 const samples = [];
+let refreshTimer = null;
+let refreshInFlight = false;
 
 const el = {
   connectionStatus: document.getElementById("connectionStatus"),
+  refreshInterval: document.getElementById("refreshInterval"),
   downloadingCount: document.getElementById("downloadingCount"),
   queuedCount: document.getElementById("queuedCount"),
   cpuValue: document.getElementById("cpuValue"),
@@ -57,6 +60,15 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, Number(value || 0)));
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function renderDownloads(downloads) {
   const items = downloads.items || [];
   if (!items.length) {
@@ -83,15 +95,6 @@ function renderDownloads(downloads) {
       </tr>
     `;
   }).join("");
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
 
 function renderStorage(info, textTarget, barTarget) {
@@ -165,7 +168,11 @@ function render(data) {
   renderDownloads(data.downloads);
   setBadge(el.downloaderOnline, true, "在线");
   setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `在线 · ${botApi.latency_ms}ms` : "离线");
-  setBadge(el.botOnline, Boolean(botInfo.bot && botInfo.bot.online), botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : "未知");
+  setBadge(
+    el.botOnline,
+    Boolean(botInfo.bot && botInfo.bot.online),
+    botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : "未知",
+  );
   el.userInfo.textContent = `${botInfo.configured_user_id || "--"} / ${botInfo.configured_chat_id || "--"}`;
 
   renderStorage(resources.download_disk || {}, el.downloadDiskText, el.downloadDiskBar);
@@ -180,6 +187,8 @@ function render(data) {
 }
 
 async function refresh() {
+  if (refreshInFlight) return;
+  refreshInFlight = true;
   try {
     const response = await fetch("/api/overview", { headers: headers() });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -188,9 +197,28 @@ async function refresh() {
     setConnection(true, "已连接");
   } catch (error) {
     setConnection(false, `连接失败: ${error.message}`);
+  } finally {
+    refreshInFlight = false;
   }
 }
 
+function getSavedRefreshInterval() {
+  const saved = Number(localStorage.getItem("admin-webui-refresh-ms"));
+  if ([500, 1000, 2000, 3000, 5000].includes(saved)) return saved;
+  if ([500, 1000, 2000, 3000, 5000].includes(defaultRefreshIntervalMs)) return defaultRefreshIntervalMs;
+  return 1000;
+}
+
+function startRefreshLoop(intervalMs) {
+  if (refreshTimer) clearInterval(refreshTimer);
+  localStorage.setItem("admin-webui-refresh-ms", String(intervalMs));
+  el.refreshInterval.value = String(intervalMs);
+  refresh();
+  refreshTimer = setInterval(refresh, intervalMs);
+}
+
+el.refreshInterval.addEventListener("change", () => {
+  startRefreshLoop(Number(el.refreshInterval.value));
+});
 window.addEventListener("resize", renderChart);
-refresh();
-setInterval(refresh, refreshIntervalMs);
+startRefreshLoop(getSavedRefreshInterval());
