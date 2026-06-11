@@ -335,17 +335,6 @@ h2 {
   overflow: hidden;
 }
 
-.metric::after {
-  content: "";
-  position: absolute;
-  right: 18px;
-  top: 20px;
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: var(--primary-soft);
-}
-
 .metric strong {
   display: block;
   margin-top: 12px;
