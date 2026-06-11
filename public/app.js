@@ -3,12 +3,17 @@ const defaultRefreshIntervalMs = Number(config.refreshIntervalMs || 1000);
 const adminToken = config.adminToken || "";
 const historyLimit = 120;
 const heartbeatTtlSeconds = 6;
+const languageStorageKey = "admin-webui-language";
+const translations = window.ADMIN_WEBUI_I18N || {};
+const supportedLanguages = Object.keys(translations);
 const samples = [];
 let refreshTimer = null;
 let heartbeatTimer = null;
 let refreshInFlight = false;
+let currentLanguage = getInitialLanguage();
 
 const el = {
+  languageSelect: document.getElementById("languageSelect"),
   connectionStatus: document.getElementById("connectionStatus"),
   sidebarQueueCount: document.getElementById("sidebarQueueCount"),
   refreshEnabled: document.getElementById("refreshEnabled"),
@@ -29,6 +34,45 @@ const el = {
   botApiDiskText: document.getElementById("botApiDiskText"),
   botApiDiskBar: document.getElementById("botApiDiskBar"),
 };
+
+function normalizeLanguage(language) {
+  const value = String(language || "").trim().replace("_", "-");
+  const lower = value.toLowerCase();
+  if (lower === "zh" || lower === "zh-cn" || lower === "zh-hans") return "zh-CN";
+  if (lower === "en" || lower === "en-us" || lower === "en-gb") return "en";
+  return supportedLanguages.includes(value) ? value : "";
+}
+
+function getInitialLanguage() {
+  const saved = normalizeLanguage(localStorage.getItem(languageStorageKey));
+  if (saved) return saved;
+  const browserLanguages = navigator.languages && navigator.languages.length
+    ? navigator.languages
+    : [navigator.language];
+  for (const language of browserLanguages) {
+    const normalized = normalizeLanguage(language);
+    if (normalized) return normalized;
+  }
+  return "en";
+}
+
+function t(key, values = {}) {
+  const table = translations[currentLanguage] || translations.en || {};
+  const fallback = translations.en || {};
+  const template = table[key] || fallback[key] || key;
+  return template.replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ""));
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLanguage;
+  document.title = t("app.title");
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  if (el.languageSelect) {
+    el.languageSelect.value = currentLanguage;
+  }
+}
 
 function requestHeaders(json = false) {
   const result = {};
@@ -51,7 +95,7 @@ function formatSpeed(bytesPerSecond) {
 
 function setBadge(target, online, text) {
   target.className = online ? "badge ok" : "badge bad";
-  target.textContent = text || (online ? "Online" : "Offline");
+  target.textContent = text || (online ? t("state.online") : t("state.offline"));
 }
 
 function setConnection(ok, text) {
@@ -76,10 +120,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function formatStatus(status) {
+  const key = `status.${String(status || "").trim().toLowerCase()}`;
+  const translated = t(key);
+  return translated === key ? String(status || "") : translated;
+}
+
 function renderDownloads(downloads) {
   const items = downloads.items || [];
   if (!items.length) {
-    el.downloadRows.innerHTML = '<tr><td colspan="5" class="empty">No active downloads</td></tr>';
+    el.downloadRows.innerHTML = `<tr><td colspan="5" class="empty">${t("downloads.empty")}</td></tr>`;
     return;
   }
 
@@ -92,7 +142,7 @@ function renderDownloads(downloads) {
           <div class="file-name" title="${escapeHtml(item.file_name)}">${escapeHtml(item.file_name)}</div>
           <div class="file-meta">${formatBytes(item.downloaded_bytes)} / ${formatBytes(item.file_size_bytes)}</div>
         </td>
-        <td><span class="badge${statusClass}">${escapeHtml(item.status)}</span></td>
+        <td><span class="badge${statusClass}">${escapeHtml(formatStatus(item.status))}</span></td>
         <td class="progress-cell">
           <div class="progress-track"><span style="width:${progress}%"></span></div>
           <div class="progress-text">${progress.toFixed(2)}%</div>
@@ -106,7 +156,7 @@ function renderDownloads(downloads) {
 
 function renderStorage(info, textTarget, barTarget) {
   const used = clampPercent(info && info.used_percent);
-  textTarget.textContent = `${pct(used)} - ${formatBytes(info && info.free_bytes)} free`;
+  textTarget.textContent = `${pct(used)} - ${t("storage.free", { free: formatBytes(info && info.free_bytes) })}`;
   barTarget.style.width = `${used}%`;
 }
 
@@ -168,18 +218,18 @@ function render(data) {
 
   el.downloadingCount.textContent = summary.downloading || 0;
   el.queuedCount.textContent = summary.queued || 0;
-  el.sidebarQueueCount.textContent = `${summary.total || 0} active tasks`;
+  el.sidebarQueueCount.textContent = t("sidebar.active_tasks", { count: summary.total || 0 });
   el.cpuValue.textContent = pct(resources.cpu_percent);
   el.memoryValue.textContent = pct(memory.used_percent);
   el.lastUpdated.textContent = new Date().toLocaleTimeString();
 
   renderDownloads(data.downloads);
-  setBadge(el.downloaderOnline, true, "Online");
-  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `Online - ${botApi.latency_ms}ms` : "Offline");
+  setBadge(el.downloaderOnline, true, t("state.online"));
+  setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `${t("state.online")} - ${botApi.latency_ms}ms` : t("state.offline"));
   setBadge(
     el.botOnline,
     Boolean(botInfo.bot && botInfo.bot.online),
-    botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : "Unknown",
+    botInfo.bot && botInfo.bot.username ? `@${botInfo.bot.username}` : t("state.unknown"),
   );
   el.userInfo.textContent = `${botInfo.configured_user_id || "--"} / ${botInfo.configured_chat_id || "--"}`;
 
@@ -233,9 +283,9 @@ async function refresh() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     render(data);
-    setConnection(true, "Connected");
+    setConnection(true, t("connection.connected"));
   } catch (error) {
-    setConnection(false, `Failed: ${error.message}`);
+    setConnection(false, t("connection.failed", { message: error.message }));
   } finally {
     refreshInFlight = false;
   }
@@ -266,7 +316,7 @@ function clearLoops() {
 function startLoops() {
   clearLoops();
   if (!isLiveRefreshActive()) {
-    setConnection(false, "Paused");
+    setConnection(false, t("connection.paused"));
     sendStopHeartbeat();
     return;
   }
@@ -282,6 +332,17 @@ function startLoops() {
 
 el.refreshInterval.value = String(getSavedRefreshInterval());
 el.refreshEnabled.checked = getSavedRefreshEnabled();
+if (el.languageSelect) {
+  el.languageSelect.value = currentLanguage;
+  el.languageSelect.addEventListener("change", () => {
+    currentLanguage = normalizeLanguage(el.languageSelect.value) || "en";
+    localStorage.setItem(languageStorageKey, currentLanguage);
+    applyLanguage();
+    renderChart();
+    refresh();
+  });
+}
+applyLanguage();
 el.refreshInterval.addEventListener("change", startLoops);
 el.refreshEnabled.addEventListener("change", startLoops);
 document.addEventListener("visibilitychange", startLoops);

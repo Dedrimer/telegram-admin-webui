@@ -183,6 +183,7 @@ h2 {
 }
 
 .refresh-control,
+.select-control,
 .toggle-control {
   display: inline-flex;
   align-items: center;
@@ -205,7 +206,8 @@ h2 {
   accent-color: var(--primary);
 }
 
-.refresh-control select {
+.refresh-control select,
+.select-control select {
   height: 34px;
   min-width: 86px;
   border: 0;
