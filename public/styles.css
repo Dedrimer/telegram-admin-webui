@@ -2,15 +2,52 @@
   color-scheme: light;
   --page: #f4f7fe;
   --card: #ffffff;
+  --surface: #ffffff;
   --ink: #1b2559;
   --muted: #a3aed0;
   --line: #e9edf7;
   --primary: #4318ff;
   --primary-soft: #f4f0ff;
   --green: #05cd99;
+  --green-soft: #e6faf4;
   --red: #ee5d50;
+  --red-soft: #fff0ee;
   --blue: #2b6fff;
+  --control-bg: #f4f7fe;
+  --table-row: #ffffff;
+  --table-row-hover: #fbfcff;
+  --track: #edf2fb;
+  --chart-grid: #dce3ea;
+  --chart-text: #647282;
+  --chart-cpu: #246bce;
+  --chart-memory: #16815e;
   --shadow: 0 18px 40px rgba(112, 144, 176, 0.14);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #101114;
+  --card: #181a20;
+  --surface: #1d2028;
+  --ink: #f2f5f9;
+  --muted: #9aa4b5;
+  --line: #2b303a;
+  --primary: #9a8cff;
+  --primary-soft: rgba(154, 140, 255, 0.16);
+  --green: #24d6a3;
+  --green-soft: rgba(36, 214, 163, 0.14);
+  --red: #ff796d;
+  --red-soft: rgba(255, 121, 109, 0.15);
+  --blue: #6ea8ff;
+  --control-bg: #222631;
+  --table-row: #1b1e26;
+  --table-row-hover: #20242e;
+  --track: #2a3040;
+  --chart-grid: #303747;
+  --chart-text: #9aa4b5;
+  --chart-cpu: #9a8cff;
+  --chart-memory: #24d6a3;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
 }
 
 * {
@@ -40,7 +77,7 @@ body {
   top: 0;
   height: 100vh;
   padding: 28px 22px;
-  background: #fff;
+  background: var(--card);
   border-right: 1px solid var(--line);
 }
 
@@ -128,7 +165,7 @@ body {
   padding: 24px 18px 18px;
   border-radius: 20px;
   color: var(--ink);
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
@@ -180,7 +217,7 @@ body {
   flex-wrap: wrap;
   padding: 10px;
   border-radius: 22px;
-  background: #fff;
+  background: var(--card);
   box-shadow: var(--shadow);
 }
 
@@ -231,7 +268,7 @@ h2 {
   min-width: 86px;
   border: 0;
   border-radius: 14px;
-  background: var(--page);
+  background: var(--control-bg);
   color: var(--ink);
   font: inherit;
   padding: 0 10px;
@@ -242,11 +279,14 @@ h2 {
 .badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-height: 32px;
   padding: 0 12px;
   border-radius: 14px;
   color: var(--muted);
-  background: var(--page);
+  background: var(--control-bg);
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
@@ -255,13 +295,13 @@ h2 {
 .status-pill.ok,
 .badge.ok {
   color: var(--green);
-  background: #e6faf4;
+  background: var(--green-soft);
 }
 
 .status-pill.bad,
 .badge.bad {
   color: var(--red);
-  background: #fff0ee;
+  background: var(--red-soft);
 }
 
 .hero-card {
@@ -274,7 +314,7 @@ h2 {
   padding: 20px 24px 20px 30px;
   border-radius: 24px;
   color: var(--ink);
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
@@ -388,19 +428,42 @@ h2 {
 }
 
 .table-wrap {
-  overflow-x: auto;
+  overflow: hidden;
   padding: 0 12px 16px;
 }
 
 table {
   width: 100%;
-  min-width: 760px;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0 6px;
 }
 
+th:nth-child(1),
+td:nth-child(1) {
+  width: 36%;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 14%;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  width: 24%;
+}
+
+th:nth-child(4),
+td:nth-child(4),
+th:nth-child(5),
+td:nth-child(5) {
+  width: 13%;
+}
+
 th,
 td {
+  overflow: hidden;
   padding: 13px 12px;
   text-align: left;
   vertical-align: middle;
@@ -413,17 +476,17 @@ th {
 }
 
 td {
-  background: #fff;
+  background: var(--table-row);
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
 }
 
 tbody tr:hover td {
-  background: #fbfcff;
+  background: var(--table-row-hover);
 }
 
 td.file {
-  max-width: 460px;
+  min-width: 0;
 }
 
 .file-name {
@@ -439,10 +502,11 @@ td.file {
   margin-top: 5px;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .progress-cell {
-  min-width: 180px;
+  min-width: 0;
 }
 
 .progress-track,
@@ -450,7 +514,7 @@ td.file {
   height: 9px;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf2fb;
+  background: var(--track);
 }
 
 .progress-track span,
@@ -607,5 +671,48 @@ dd {
     display: grid;
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .table-wrap {
+    padding: 0 8px 14px;
+  }
+
+  th,
+  td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 34%;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 16%;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 24%;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4),
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 13%;
+  }
+
+  .badge {
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .progress-text,
+  .file-meta {
+    font-size: 11px;
   }
 }

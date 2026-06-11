@@ -4,6 +4,8 @@ const adminToken = config.adminToken || "";
 const historyLimit = 120;
 const heartbeatTtlSeconds = 6;
 const languageStorageKey = "admin-webui-language";
+const themeStorageKey = "admin-webui-theme";
+const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 const translations = window.ADMIN_WEBUI_I18N || {};
 const supportedLanguages = Object.keys(translations);
 const samples = [];
@@ -11,9 +13,11 @@ let refreshTimer = null;
 let heartbeatTimer = null;
 let refreshInFlight = false;
 let currentLanguage = getInitialLanguage();
+let currentThemeMode = getInitialThemeMode();
 
 const el = {
   languageSelect: document.getElementById("languageSelect"),
+  themeSelect: document.getElementById("themeSelect"),
   connectionStatus: document.getElementById("connectionStatus"),
   sidebarQueueCount: document.getElementById("sidebarQueueCount"),
   refreshEnabled: document.getElementById("refreshEnabled"),
@@ -72,6 +76,32 @@ function applyLanguage() {
   if (el.languageSelect) {
     el.languageSelect.value = currentLanguage;
   }
+}
+
+function normalizeThemeMode(mode) {
+  const value = String(mode || "").trim().toLowerCase();
+  return ["auto", "light", "dark"].includes(value) ? value : "";
+}
+
+function getInitialThemeMode() {
+  return normalizeThemeMode(localStorage.getItem(themeStorageKey)) || "auto";
+}
+
+function getResolvedTheme() {
+  if (currentThemeMode === "dark") return "dark";
+  if (currentThemeMode === "light") return "light";
+  return themeMediaQuery.matches ? "dark" : "light";
+}
+
+function applyTheme() {
+  const resolvedTheme = getResolvedTheme();
+  document.documentElement.dataset.theme = resolvedTheme;
+  document.documentElement.dataset.themeMode = currentThemeMode;
+  document.documentElement.style.colorScheme = resolvedTheme;
+  if (el.themeSelect) {
+    el.themeSelect.value = currentThemeMode;
+  }
+  renderChart();
 }
 
 function requestHeaders(json = false) {
@@ -163,6 +193,11 @@ function renderStorage(info, textTarget, barTarget) {
 function renderChart() {
   const canvas = el.chart;
   const ctx = canvas.getContext("2d");
+  const styles = getComputedStyle(document.documentElement);
+  const chartGridColor = styles.getPropertyValue("--chart-grid").trim() || "#dce3ea";
+  const chartTextColor = styles.getPropertyValue("--chart-text").trim() || "#647282";
+  const cpuColor = styles.getPropertyValue("--chart-cpu").trim() || "#246bce";
+  const memoryColor = styles.getPropertyValue("--chart-memory").trim() || "#16815e";
   const ratio = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   canvas.width = Math.max(1, Math.floor(rect.width * ratio));
@@ -176,10 +211,10 @@ function renderChart() {
   const chartHeight = height - padding.top - padding.bottom;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.strokeStyle = "#dce3ea";
+  ctx.strokeStyle = chartGridColor;
   ctx.lineWidth = 1;
   ctx.font = "12px Segoe UI, sans-serif";
-  ctx.fillStyle = "#647282";
+  ctx.fillStyle = chartTextColor;
 
   for (let i = 0; i <= 4; i += 1) {
     const y = padding.top + (chartHeight * i) / 4;
@@ -190,8 +225,8 @@ function renderChart() {
     ctx.fillText(`${100 - i * 25}`, 6, y + 4);
   }
 
-  drawSeries(ctx, samples.map((item) => item.cpu), "#246bce", padding, chartWidth, chartHeight);
-  drawSeries(ctx, samples.map((item) => item.memory), "#16815e", padding, chartWidth, chartHeight);
+  drawSeries(ctx, samples.map((item) => item.cpu), cpuColor, padding, chartWidth, chartHeight);
+  drawSeries(ctx, samples.map((item) => item.memory), memoryColor, padding, chartWidth, chartHeight);
 }
 
 function drawSeries(ctx, values, color, padding, chartWidth, chartHeight) {
@@ -343,6 +378,20 @@ if (el.languageSelect) {
   });
 }
 applyLanguage();
+if (el.themeSelect) {
+  el.themeSelect.value = currentThemeMode;
+  el.themeSelect.addEventListener("change", () => {
+    currentThemeMode = normalizeThemeMode(el.themeSelect.value) || "auto";
+    localStorage.setItem(themeStorageKey, currentThemeMode);
+    applyTheme();
+  });
+}
+themeMediaQuery.addEventListener("change", () => {
+  if (currentThemeMode === "auto") {
+    applyTheme();
+  }
+});
+applyTheme();
 el.refreshInterval.addEventListener("change", startLoops);
 el.refreshEnabled.addEventListener("change", startLoops);
 document.addEventListener("visibilitychange", startLoops);
