@@ -5,6 +5,7 @@ const historyLimit = 120;
 const heartbeatTtlSeconds = 6;
 const languageStorageKey = "admin-webui-language";
 const themeStorageKey = "admin-webui-theme";
+const sidebarCollapsedStorageKey = "admin-webui-sidebar-collapsed";
 const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 const translations = window.ADMIN_WEBUI_I18N || {};
 const supportedLanguages = Object.keys(translations);
@@ -14,10 +15,12 @@ let heartbeatTimer = null;
 let refreshInFlight = false;
 let currentLanguage = getInitialLanguage();
 let currentThemeMode = getInitialThemeMode();
+let sidebarCollapsed = getInitialSidebarCollapsed();
 
 const el = {
   languageSelect: document.getElementById("languageSelect"),
   themeSelect: document.getElementById("themeSelect"),
+  sidebarToggle: document.getElementById("sidebarToggle"),
   connectionStatus: document.getElementById("connectionStatus"),
   sidebarQueueCount: document.getElementById("sidebarQueueCount"),
   refreshEnabled: document.getElementById("refreshEnabled"),
@@ -28,6 +31,14 @@ const el = {
   memoryValue: document.getElementById("memoryValue"),
   lastUpdated: document.getElementById("lastUpdated"),
   downloadRows: document.getElementById("downloadRows"),
+  historyRows: document.getElementById("historyRows"),
+  historyCount: document.getElementById("historyCount"),
+  historyRetentionDays: document.getElementById("historyRetentionDays"),
+  historyRetentionUnlimited: document.getElementById("historyRetentionUnlimited"),
+  historyMaxRecords: document.getElementById("historyMaxRecords"),
+  historyMaxRecordsUnlimited: document.getElementById("historyMaxRecordsUnlimited"),
+  saveHistorySettings: document.getElementById("saveHistorySettings"),
+  historySettingsStatus: document.getElementById("historySettingsStatus"),
   chart: document.getElementById("resourceChart"),
   downloaderOnline: document.getElementById("downloaderOnline"),
   botApiOnline: document.getElementById("botApiOnline"),
@@ -73,9 +84,16 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
   });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    node.title = t(node.dataset.i18nTitle);
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+  });
   if (el.languageSelect) {
     el.languageSelect.value = currentLanguage;
   }
+  applySidebarState();
 }
 
 function normalizeThemeMode(mode) {
@@ -102,6 +120,22 @@ function applyTheme() {
     el.themeSelect.value = currentThemeMode;
   }
   renderChart();
+}
+
+function getInitialSidebarCollapsed() {
+  return localStorage.getItem(sidebarCollapsedStorageKey) === "true";
+}
+
+function applySidebarState() {
+  document.documentElement.dataset.sidebar = sidebarCollapsed ? "collapsed" : "expanded";
+  if (el.sidebarToggle) {
+    const label = sidebarCollapsed ? t("sidebar.expand") : t("sidebar.collapse");
+    el.sidebarToggle.setAttribute("aria-label", label);
+    el.sidebarToggle.setAttribute("aria-pressed", String(sidebarCollapsed));
+    el.sidebarToggle.title = label;
+  }
+  renderChart();
+  window.setTimeout(renderChart, 220);
 }
 
 function requestHeaders(json = false) {
@@ -184,6 +218,81 @@ function renderDownloads(downloads) {
   }).join("");
 }
 
+function formatDateTime(value) {
+  if (!value) return "--";
+  const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleString();
+}
+
+function renderHistory(history) {
+  const items = (history && history.items) || [];
+  const summary = (history && history.summary) || {};
+  if (el.historyCount) {
+    el.historyCount.textContent = t("history.count", { count: summary.total || 0 });
+  }
+  if (!el.historyRows) return;
+  if (!items.length) {
+    el.historyRows.innerHTML = `<tr><td colspan="5" class="empty">${t("history.empty")}</td></tr>`;
+    return;
+  }
+
+  el.historyRows.innerHTML = items.map((item) => {
+    const progress = clampPercent(item.progress_percent);
+    const ok = String(item.status || "").toLowerCase() === "complete";
+    const bad = ["failed", "cancelled"].includes(String(item.status || "").toLowerCase());
+    const statusClass = ok ? " ok" : (bad ? " bad" : "");
+    return `
+      <tr>
+        <td class="file">
+          <div class="file-name" title="${escapeHtml(item.file_name)}">${escapeHtml(item.file_name)}</div>
+          <div class="file-meta">${formatBytes(item.downloaded_bytes)} / ${formatBytes(item.file_size_bytes)}</div>
+        </td>
+        <td><span class="badge${statusClass}">${escapeHtml(formatStatus(item.status))}</span></td>
+        <td class="progress-cell">
+          <div class="progress-track"><span style="width:${progress}%"></span></div>
+          <div class="progress-text">${progress.toFixed(2)}%</div>
+        </td>
+        <td>${escapeHtml(formatDateTime(item.completed_at_iso || item.completed_at))}</td>
+        <td class="error-cell" title="${escapeHtml(item.last_error || "")}">${escapeHtml(item.last_error || "--")}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function applyHistorySettings(settings) {
+  const history = settings && settings.download_history;
+  if (!history) return;
+  const retentionUnlimited = Boolean(history.retention_unlimited);
+  const recordsUnlimited = Boolean(history.max_records_unlimited);
+  if (el.historyRetentionUnlimited) el.historyRetentionUnlimited.checked = retentionUnlimited;
+  if (el.historyMaxRecordsUnlimited) el.historyMaxRecordsUnlimited.checked = recordsUnlimited;
+  if (el.historyRetentionDays) {
+    el.historyRetentionDays.disabled = retentionUnlimited;
+    el.historyRetentionDays.value = retentionUnlimited ? "" : String(history.retention_days || 30);
+  }
+  if (el.historyMaxRecords) {
+    el.historyMaxRecords.disabled = recordsUnlimited;
+    el.historyMaxRecords.value = recordsUnlimited ? "" : String(history.max_records || 1000);
+  }
+}
+
+function renderHistorySettingsStatus(settings) {
+  if (!el.historySettingsStatus) return;
+  const history = settings && settings.download_history;
+  if (!history) {
+    el.historySettingsStatus.textContent = "--";
+    return;
+  }
+  const retention = history.retention_unlimited
+    ? t("settings.unlimited")
+    : t("settings.days_value", { value: history.retention_days });
+  const records = history.max_records_unlimited
+    ? t("settings.unlimited")
+    : t("settings.records_value", { value: history.max_records });
+  el.historySettingsStatus.textContent = t("settings.current", { retention, records });
+}
+
 function renderStorage(info, textTarget, barTarget) {
   const used = clampPercent(info && info.used_percent);
   textTarget.textContent = `${pct(used)} - ${t("storage.free", { free: formatBytes(info && info.free_bytes) })}`;
@@ -243,13 +352,16 @@ function drawSeries(ctx, values, color, padding, chartWidth, chartHeight) {
   ctx.stroke();
 }
 
-function render(data) {
+function render(data, history) {
   const summary = data.downloads.summary || {};
   const resources = data.system.resources || {};
   const memory = resources.memory || {};
   const components = data.system.components || {};
   const botInfo = data.bot || {};
   const botApi = components.telegram_bot_api || {};
+  const settings = {
+    download_history: data.system.download_history || {},
+  };
 
   el.downloadingCount.textContent = summary.downloading || 0;
   el.queuedCount.textContent = summary.queued || 0;
@@ -259,6 +371,9 @@ function render(data) {
   el.lastUpdated.textContent = new Date().toLocaleTimeString();
 
   renderDownloads(data.downloads);
+  renderHistory(history);
+  applyHistorySettings(settings);
+  renderHistorySettingsStatus(settings);
   setBadge(el.downloaderOnline, true, t("state.online"));
   setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `${t("state.online")} - ${botApi.latency_ms}ms` : t("state.offline"));
   setBadge(
@@ -288,6 +403,37 @@ async function postJson(path, payload, keepalive = false) {
   });
 }
 
+async function saveHistorySettings() {
+  if (!el.saveHistorySettings) return;
+  const retentionUnlimited = Boolean(el.historyRetentionUnlimited && el.historyRetentionUnlimited.checked);
+  const recordsUnlimited = Boolean(el.historyMaxRecordsUnlimited && el.historyMaxRecordsUnlimited.checked);
+  const payload = {
+    download_history: {
+      retention_unlimited: retentionUnlimited,
+      retention_days: retentionUnlimited ? null : Number(el.historyRetentionDays.value || 30),
+      max_records_unlimited: recordsUnlimited,
+      max_records: recordsUnlimited ? null : Number(el.historyMaxRecords.value || 1000),
+    },
+  };
+  el.saveHistorySettings.disabled = true;
+  if (el.historySettingsStatus) el.historySettingsStatus.textContent = t("settings.saving");
+  try {
+    const response = await postJson("/api/settings", payload);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    applyHistorySettings(data);
+    renderHistorySettingsStatus(data);
+    if (el.historySettingsStatus) el.historySettingsStatus.textContent = t("settings.saved");
+    await refresh();
+  } catch (error) {
+    if (el.historySettingsStatus) {
+      el.historySettingsStatus.textContent = t("settings.save_failed", { message: error.message });
+    }
+  } finally {
+    el.saveHistorySettings.disabled = false;
+  }
+}
+
 function sendStopHeartbeat() {
   const payload = JSON.stringify({ enabled: false });
   if (!adminToken && navigator.sendBeacon) {
@@ -314,10 +460,15 @@ async function refresh() {
   if (!isLiveRefreshActive() || refreshInFlight) return;
   refreshInFlight = true;
   try {
-    const response = await fetch("/api/overview", { headers: requestHeaders() });
+    const [response, historyResponse] = await Promise.all([
+      fetch("/api/overview", { headers: requestHeaders() }),
+      fetch("/api/download-history?limit=50", { headers: requestHeaders() }),
+    ]);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!historyResponse.ok) throw new Error(`HTTP ${historyResponse.status}`);
     const data = await response.json();
-    render(data);
+    const history = await historyResponse.json();
+    render(data, history);
     setConnection(true, t("connection.connected"));
   } catch (error) {
     setConnection(false, t("connection.failed", { message: error.message }));
@@ -378,6 +529,13 @@ if (el.languageSelect) {
   });
 }
 applyLanguage();
+if (el.sidebarToggle) {
+  el.sidebarToggle.addEventListener("click", () => {
+    sidebarCollapsed = !sidebarCollapsed;
+    localStorage.setItem(sidebarCollapsedStorageKey, String(sidebarCollapsed));
+    applySidebarState();
+  });
+}
 if (el.themeSelect) {
   el.themeSelect.value = currentThemeMode;
   el.themeSelect.addEventListener("change", () => {
@@ -394,6 +552,19 @@ themeMediaQuery.addEventListener("change", () => {
 applyTheme();
 el.refreshInterval.addEventListener("change", startLoops);
 el.refreshEnabled.addEventListener("change", startLoops);
+if (el.historyRetentionUnlimited) {
+  el.historyRetentionUnlimited.addEventListener("change", () => {
+    if (el.historyRetentionDays) el.historyRetentionDays.disabled = el.historyRetentionUnlimited.checked;
+  });
+}
+if (el.historyMaxRecordsUnlimited) {
+  el.historyMaxRecordsUnlimited.addEventListener("change", () => {
+    if (el.historyMaxRecords) el.historyMaxRecords.disabled = el.historyMaxRecordsUnlimited.checked;
+  });
+}
+if (el.saveHistorySettings) {
+  el.saveHistorySettings.addEventListener("click", saveHistorySettings);
+}
 document.addEventListener("visibilitychange", startLoops);
 window.addEventListener("pagehide", sendStopHeartbeat);
 window.addEventListener("beforeunload", sendStopHeartbeat);
