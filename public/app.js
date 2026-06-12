@@ -33,6 +33,12 @@ const el = {
   downloadRows: document.getElementById("downloadRows"),
   historyRows: document.getElementById("historyRows"),
   historyCount: document.getElementById("historyCount"),
+  settingsLanguage: document.getElementById("settingsLanguage"),
+  singleFileGroupEnabled: document.getElementById("singleFileGroupEnabled"),
+  singleFileGroupDelay: document.getElementById("singleFileGroupDelay"),
+  downloadStatusUpdateInterval: document.getElementById("downloadStatusUpdateInterval"),
+  downloadProgressPollInterval: document.getElementById("downloadProgressPollInterval"),
+  adminProgressPollInterval: document.getElementById("adminProgressPollInterval"),
   historyRetentionDays: document.getElementById("historyRetentionDays"),
   historyRetentionUnlimited: document.getElementById("historyRetentionUnlimited"),
   historyMaxRecords: document.getElementById("historyMaxRecords"),
@@ -262,6 +268,15 @@ function renderHistory(history) {
 
 function applyHistorySettings(settings) {
   const history = settings && settings.download_history;
+  const runtime = settings && settings.runtime_settings;
+  if (runtime) {
+    if (el.settingsLanguage) el.settingsLanguage.value = normalizeLanguage(runtime.language) || "en";
+    if (el.singleFileGroupEnabled) el.singleFileGroupEnabled.checked = Boolean(runtime.single_file_group_enabled);
+    if (el.singleFileGroupDelay) el.singleFileGroupDelay.value = String(runtime.single_file_group_delay || 1);
+    if (el.downloadStatusUpdateInterval) el.downloadStatusUpdateInterval.value = String(runtime.download_status_update_interval || 5);
+    if (el.downloadProgressPollInterval) el.downloadProgressPollInterval.value = String(runtime.download_progress_poll_interval || 1);
+    if (el.adminProgressPollInterval) el.adminProgressPollInterval.value = String(runtime.admin_progress_poll_interval || 0.5);
+  }
   if (!history) return;
   const retentionUnlimited = Boolean(history.retention_unlimited);
   const recordsUnlimited = Boolean(history.max_records_unlimited);
@@ -280,6 +295,7 @@ function applyHistorySettings(settings) {
 function renderHistorySettingsStatus(settings) {
   if (!el.historySettingsStatus) return;
   const history = settings && settings.download_history;
+  const runtime = settings && settings.runtime_settings;
   if (!history) {
     el.historySettingsStatus.textContent = "--";
     return;
@@ -290,7 +306,8 @@ function renderHistorySettingsStatus(settings) {
   const records = history.max_records_unlimited
     ? t("settings.unlimited")
     : t("settings.records_value", { value: history.max_records });
-  el.historySettingsStatus.textContent = t("settings.current", { retention, records });
+  const language = runtime && runtime.language ? runtime.language : "--";
+  el.historySettingsStatus.textContent = t("settings.current", { retention, records, language });
 }
 
 function renderStorage(info, textTarget, barTarget) {
@@ -361,6 +378,7 @@ function render(data, history) {
   const botApi = components.telegram_bot_api || {};
   const settings = {
     download_history: data.system.download_history || {},
+    runtime_settings: data.system.runtime_settings || {},
   };
 
   el.downloadingCount.textContent = summary.downloading || 0;
@@ -408,6 +426,14 @@ async function saveHistorySettings() {
   const retentionUnlimited = Boolean(el.historyRetentionUnlimited && el.historyRetentionUnlimited.checked);
   const recordsUnlimited = Boolean(el.historyMaxRecordsUnlimited && el.historyMaxRecordsUnlimited.checked);
   const payload = {
+    runtime_settings: {
+      language: el.settingsLanguage ? el.settingsLanguage.value : "en",
+      single_file_group_enabled: Boolean(el.singleFileGroupEnabled && el.singleFileGroupEnabled.checked),
+      single_file_group_delay: Number(el.singleFileGroupDelay && el.singleFileGroupDelay.value || 1),
+      download_status_update_interval: Number(el.downloadStatusUpdateInterval && el.downloadStatusUpdateInterval.value || 5),
+      download_progress_poll_interval: Number(el.downloadProgressPollInterval && el.downloadProgressPollInterval.value || 1),
+      admin_progress_poll_interval: Number(el.adminProgressPollInterval && el.adminProgressPollInterval.value || 0.5),
+    },
     download_history: {
       retention_unlimited: retentionUnlimited,
       retention_days: retentionUnlimited ? null : Number(el.historyRetentionDays.value || 30),

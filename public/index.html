@@ -299,12 +299,39 @@
         <section class="panel settings-panel" id="settings">
           <div class="panel-head">
             <div>
-              <span data-i18n="settings.caption">Database retention controls</span>
-              <h2 data-i18n="settings.title">Queue History Settings</h2>
+              <span data-i18n="settings.caption">Runtime controls</span>
+              <h2 data-i18n="settings.title">Runtime Settings</h2>
             </div>
             <button class="primary-button" id="saveHistorySettings" type="button" data-i18n="settings.save">Save</button>
           </div>
           <div class="settings-grid">
+            <label class="field-control" for="settingsLanguage">
+              <span data-i18n="settings.language">Bot language</span>
+              <select id="settingsLanguage">
+                <option value="en">English</option>
+                <option value="zh-CN">zh-CN</option>
+              </select>
+            </label>
+            <label class="toggle-control field-toggle" for="singleFileGroupEnabled">
+              <input id="singleFileGroupEnabled" type="checkbox">
+              <span data-i18n="settings.single_group_enabled">Single-file grouping</span>
+            </label>
+            <label class="field-control" for="singleFileGroupDelay">
+              <span data-i18n="settings.single_group_delay">Single-file grouping delay</span>
+              <input id="singleFileGroupDelay" type="number" min="0.1" max="60" step="0.1" value="1">
+            </label>
+            <label class="field-control" for="downloadStatusUpdateInterval">
+              <span data-i18n="settings.status_update_interval">Status update interval</span>
+              <input id="downloadStatusUpdateInterval" type="number" min="3" max="60" step="0.5" value="5">
+            </label>
+            <label class="field-control" for="downloadProgressPollInterval">
+              <span data-i18n="settings.progress_poll_interval">Download progress poll interval</span>
+              <input id="downloadProgressPollInterval" type="number" min="1" max="10" step="0.5" value="1">
+            </label>
+            <label class="field-control" for="adminProgressPollInterval">
+              <span data-i18n="settings.admin_poll_interval">Admin progress poll interval</span>
+              <input id="adminProgressPollInterval" type="number" min="0.2" max="10" step="0.1" value="0.5">
+            </label>
             <label class="field-control" for="historyRetentionDays">
               <span data-i18n="settings.retention_days">History retention days</span>
               <input id="historyRetentionDays" type="number" min="1" step="1" value="30">
