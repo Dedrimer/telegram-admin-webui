@@ -16,6 +16,8 @@ let refreshInFlight = false;
 let currentLanguage = getInitialLanguage();
 let currentThemeMode = getInitialThemeMode();
 let sidebarCollapsed = getInitialSidebarCollapsed();
+let settingsFormDirty = false;
+let settingsFormInitialized = false;
 
 const el = {
   languageSelect: document.getElementById("languageSelect"),
@@ -266,7 +268,13 @@ function renderHistory(history) {
   }).join("");
 }
 
-function applyHistorySettings(settings) {
+function markSettingsDirty() {
+  settingsFormDirty = true;
+}
+
+function applyHistorySettings(settings, options = {}) {
+  const force = Boolean(options.force);
+  if (settingsFormDirty && !force) return;
   const history = settings && settings.download_history;
   const runtime = settings && settings.runtime_settings;
   if (runtime) {
@@ -290,6 +298,8 @@ function applyHistorySettings(settings) {
     el.historyMaxRecords.disabled = recordsUnlimited;
     el.historyMaxRecords.value = recordsUnlimited ? "" : String(history.max_records || 1000);
   }
+  settingsFormInitialized = true;
+  settingsFormDirty = false;
 }
 
 function renderHistorySettingsStatus(settings) {
@@ -390,8 +400,12 @@ function render(data, history) {
 
   renderDownloads(data.downloads);
   renderHistory(history);
-  applyHistorySettings(settings);
-  renderHistorySettingsStatus(settings);
+  if (!settingsFormInitialized && !settingsFormDirty) {
+    applyHistorySettings(settings, { force: true });
+  }
+  if (!settingsFormDirty) {
+    renderHistorySettingsStatus(settings);
+  }
   setBadge(el.downloaderOnline, true, t("state.online"));
   setBadge(el.botApiOnline, Boolean(botApi.online), botApi.online ? `${t("state.online")} - ${botApi.latency_ms}ms` : t("state.offline"));
   setBadge(
@@ -447,7 +461,7 @@ async function saveHistorySettings() {
     const response = await postJson("/api/settings", payload);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    applyHistorySettings(data);
+    applyHistorySettings(data, { force: true });
     renderHistorySettingsStatus(data);
     if (el.historySettingsStatus) el.historySettingsStatus.textContent = t("settings.saved");
     await refresh();
@@ -580,14 +594,30 @@ el.refreshInterval.addEventListener("change", startLoops);
 el.refreshEnabled.addEventListener("change", startLoops);
 if (el.historyRetentionUnlimited) {
   el.historyRetentionUnlimited.addEventListener("change", () => {
+    markSettingsDirty();
     if (el.historyRetentionDays) el.historyRetentionDays.disabled = el.historyRetentionUnlimited.checked;
   });
 }
 if (el.historyMaxRecordsUnlimited) {
   el.historyMaxRecordsUnlimited.addEventListener("change", () => {
+    markSettingsDirty();
     if (el.historyMaxRecords) el.historyMaxRecords.disabled = el.historyMaxRecordsUnlimited.checked;
   });
 }
+[
+  el.settingsLanguage,
+  el.singleFileGroupEnabled,
+  el.singleFileGroupDelay,
+  el.downloadStatusUpdateInterval,
+  el.downloadProgressPollInterval,
+  el.adminProgressPollInterval,
+  el.historyRetentionDays,
+  el.historyMaxRecords,
+].forEach((control) => {
+  if (!control) return;
+  control.addEventListener("input", markSettingsDirty);
+  control.addEventListener("change", markSettingsDirty);
+});
 if (el.saveHistorySettings) {
   el.saveHistorySettings.addEventListener("click", saveHistorySettings);
 }

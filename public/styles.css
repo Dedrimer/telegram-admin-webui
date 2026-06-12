@@ -351,6 +351,10 @@ h2 {
   outline: none;
 }
 
+.field-control:has(select) {
+  position: relative;
+}
+
 .status-pill,
 .badge {
   display: inline-flex;
@@ -754,7 +758,8 @@ dd {
   font-weight: 800;
 }
 
-.field-control input {
+.field-control input,
+.field-control select {
   height: 38px;
   width: 100%;
   border: 0;
@@ -766,7 +771,32 @@ dd {
   outline: none;
 }
 
-.field-control input:disabled {
+.field-control select {
+  appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+.field-control:has(select)::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  bottom: 15px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.field-control input:focus,
+.field-control select:focus {
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
+.field-control input:disabled,
+.field-control select:disabled {
   opacity: 0.55;
 }
 
