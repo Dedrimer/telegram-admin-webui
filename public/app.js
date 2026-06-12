@@ -198,16 +198,34 @@ function formatStatus(status) {
   return translated === key ? String(status || "") : translated;
 }
 
+const actionIcons = {
+  cancel: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>',
+  retry: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>',
+  delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
+};
+
+function actionButton(action, target, item, labelKey) {
+  const label = t(labelKey);
+  const fileId = item.file_id ? ` data-file-id="${escapeHtml(item.file_id)}"` : "";
+  const historyId = item.id ? ` data-history-id="${escapeHtml(item.id)}"` : "";
+  return `<button class="table-action ${action}" type="button" data-action="${action}" data-target="${target}"${fileId}${historyId} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${actionIcons[action] || escapeHtml(label)}</button>`;
+}
+
 function renderDownloads(downloads) {
   const items = downloads.items || [];
   if (!items.length) {
-    el.downloadRows.innerHTML = `<tr><td colspan="5" class="empty">${t("downloads.empty")}</td></tr>`;
+    el.downloadRows.innerHTML = `<tr><td colspan="6" class="empty">${t("downloads.empty")}</td></tr>`;
     return;
   }
 
   el.downloadRows.innerHTML = items.map((item) => {
     const progress = clampPercent(item.progress_percent);
     const statusClass = item.queued ? "" : " ok";
+    const actions = [
+      actionButton("cancel", "download", item, "action.cancel"),
+      actionButton("retry", "download", item, "action.retry"),
+      actionButton("delete", "download", item, "action.delete"),
+    ].join("");
     return `
       <tr>
         <td class="file">
@@ -221,6 +239,7 @@ function renderDownloads(downloads) {
         </td>
         <td>${formatSpeed(item.speed_bps)}</td>
         <td>${escapeHtml(item.eta || "--")}</td>
+        <td class="actions-cell">${actions}</td>
       </tr>
     `;
   }).join("");
@@ -241,7 +260,7 @@ function renderHistory(history) {
   }
   if (!el.historyRows) return;
   if (!items.length) {
-    el.historyRows.innerHTML = `<tr><td colspan="5" class="empty">${t("history.empty")}</td></tr>`;
+    el.historyRows.innerHTML = `<tr><td colspan="6" class="empty">${t("history.empty")}</td></tr>`;
     return;
   }
 
@@ -250,6 +269,10 @@ function renderHistory(history) {
     const ok = String(item.status || "").toLowerCase() === "complete";
     const bad = ["failed", "cancelled"].includes(String(item.status || "").toLowerCase());
     const statusClass = ok ? " ok" : (bad ? " bad" : "");
+    const actions = [
+      actionButton("retry", "history", item, "action.retry"),
+      actionButton("delete", "history", item, "action.delete"),
+    ].join("");
     return `
       <tr>
         <td class="file">
@@ -263,6 +286,7 @@ function renderHistory(history) {
         </td>
         <td>${escapeHtml(formatDateTime(item.completed_at_iso || item.completed_at))}</td>
         <td class="error-cell" title="${escapeHtml(item.last_error || "")}">${escapeHtml(item.last_error || "--")}</td>
+        <td class="actions-cell">${actions}</td>
       </tr>
     `;
   }).join("");
@@ -474,6 +498,25 @@ async function saveHistorySettings() {
   }
 }
 
+async function runDownloadAction(button) {
+  const action = button.dataset.action;
+  const target = button.dataset.target;
+  const payload = { action, target };
+  if (button.dataset.fileId) payload.file_id = button.dataset.fileId;
+  if (button.dataset.historyId) payload.history_id = Number(button.dataset.historyId);
+
+  button.disabled = true;
+  try {
+    const response = await postJson("/api/download-action", payload);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    await refresh();
+  } catch (error) {
+    setConnection(false, t("action.failed", { message: error.message }));
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function sendStopHeartbeat() {
   const payload = JSON.stringify({ enabled: false });
   if (!adminToken && navigator.sendBeacon) {
@@ -620,6 +663,18 @@ if (el.historyMaxRecordsUnlimited) {
 });
 if (el.saveHistorySettings) {
   el.saveHistorySettings.addEventListener("click", saveHistorySettings);
+}
+if (el.downloadRows) {
+  el.downloadRows.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-action]");
+    if (button) runDownloadAction(button);
+  });
+}
+if (el.historyRows) {
+  el.historyRows.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-action]");
+    if (button) runDownloadAction(button);
+  });
 }
 document.addEventListener("visibilitychange", startLoops);
 window.addEventListener("pagehide", sendStopHeartbeat);
