@@ -38,10 +38,10 @@
       </aside>
 
       <main class="content-shell">
-        <header class="topbar" id="overview">
+        <header class="topbar">
           <div>
-            <p class="eyebrow" data-i18n="header.main_dashboard">Main Dashboard</p>
-            <h1>Telegram Downloader</h1>
+            <p class="eyebrow" id="pageEyebrow" data-i18n="header.main_dashboard">Main Dashboard</p>
+            <h1 id="pageTitle">Telegram Downloader</h1>
           </div>
           <div class="top-actions">
             <label class="select-control" for="languageSelect">
@@ -77,77 +77,21 @@
           </div>
         </header>
 
-        <section class="hero-card">
-          <div>
-            <span data-i18n="hero.runtime_snapshot">Runtime snapshot</span>
-            <strong id="lastUpdated">--</strong>
-          </div>
-          <div class="hero-icons" aria-hidden="true">
-            <span>
-              <svg viewBox="0 0 24 24">
-                <path d="M12 3v11"></path>
-                <path d="m7 10 5 5 5-5"></path>
-                <path d="M5 20h14"></path>
-              </svg>
-            </span>
-            <span>
-              <svg viewBox="0 0 24 24">
-                <rect x="7" y="7" width="10" height="10" rx="2"></rect>
-                <path d="M9 1v3"></path>
-                <path d="M15 1v3"></path>
-                <path d="M9 20v3"></path>
-                <path d="M15 20v3"></path>
-                <path d="M20 9h3"></path>
-                <path d="M20 14h3"></path>
-                <path d="M1 9h3"></path>
-                <path d="M1 14h3"></path>
-              </svg>
-            </span>
-            <span>
-              <svg viewBox="0 0 24 24">
-                <path d="M20 7h-9"></path>
-                <path d="M14 17H5"></path>
-                <circle cx="17" cy="17" r="3"></circle>
-                <circle cx="7" cy="7" r="3"></circle>
-              </svg>
-            </span>
-          </div>
-        </section>
-
-        <section class="metrics" aria-label="Status metrics">
-          <article class="metric">
-            <div class="metric-head">
-              <span class="metric-label" data-i18n="metric.downloading">Downloading</span>
-              <span class="metric-icon" aria-hidden="true">
+        <section class="page active" id="overview" data-page="overview">
+          <section class="hero-card">
+            <div>
+              <span data-i18n="hero.runtime_snapshot">Runtime snapshot</span>
+              <strong id="lastUpdated">--</strong>
+            </div>
+            <div class="hero-icons" aria-hidden="true">
+              <span>
                 <svg viewBox="0 0 24 24">
                   <path d="M12 3v11"></path>
                   <path d="m7 10 5 5 5-5"></path>
                   <path d="M5 20h14"></path>
                 </svg>
               </span>
-            </div>
-            <strong id="downloadingCount">0</strong>
-          </article>
-          <article class="metric">
-            <div class="metric-head">
-              <span class="metric-label" data-i18n="metric.queued">Queued</span>
-              <span class="metric-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M8 6h13"></path>
-                  <path d="M8 12h13"></path>
-                  <path d="M8 18h13"></path>
-                  <path d="M3 6h.01"></path>
-                  <path d="M3 12h.01"></path>
-                  <path d="M3 18h.01"></path>
-                </svg>
-              </span>
-            </div>
-            <strong id="queuedCount">0</strong>
-          </article>
-          <article class="metric">
-            <div class="metric-head">
-              <span class="metric-label" data-i18n="metric.cpu">CPU</span>
-              <span class="metric-icon" aria-hidden="true">
+              <span>
                 <svg viewBox="0 0 24 24">
                   <rect x="7" y="7" width="10" height="10" rx="2"></rect>
                   <path d="M9 1v3"></path>
@@ -160,29 +104,87 @@
                   <path d="M1 14h3"></path>
                 </svg>
               </span>
-            </div>
-            <strong id="cpuValue">0%</strong>
-          </article>
-          <article class="metric">
-            <div class="metric-head">
-              <span class="metric-label" data-i18n="metric.memory">Memory</span>
-              <span class="metric-icon" aria-hidden="true">
+              <span>
                 <svg viewBox="0 0 24 24">
-                  <path d="M6 19V5"></path>
-                  <path d="M10 19V5"></path>
-                  <path d="M14 19V5"></path>
-                  <path d="M18 19V5"></path>
-                  <path d="M4 8h16"></path>
-                  <path d="M4 16h16"></path>
+                  <path d="M20 7h-9"></path>
+                  <path d="M14 17H5"></path>
+                  <circle cx="17" cy="17" r="3"></circle>
+                  <circle cx="7" cy="7" r="3"></circle>
                 </svg>
               </span>
             </div>
-            <strong id="memoryValue">0%</strong>
-          </article>
+          </section>
+
+          <section class="metrics" aria-label="Status metrics">
+            <article class="metric">
+              <div class="metric-head">
+                <span class="metric-label" data-i18n="metric.downloading">Downloading</span>
+                <span class="metric-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 3v11"></path>
+                    <path d="m7 10 5 5 5-5"></path>
+                    <path d="M5 20h14"></path>
+                  </svg>
+                </span>
+              </div>
+              <strong id="downloadingCount">0</strong>
+            </article>
+            <article class="metric">
+              <div class="metric-head">
+                <span class="metric-label" data-i18n="metric.queued">Queued</span>
+                <span class="metric-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M8 6h13"></path>
+                    <path d="M8 12h13"></path>
+                    <path d="M8 18h13"></path>
+                    <path d="M3 6h.01"></path>
+                    <path d="M3 12h.01"></path>
+                    <path d="M3 18h.01"></path>
+                  </svg>
+                </span>
+              </div>
+              <strong id="queuedCount">0</strong>
+            </article>
+            <article class="metric">
+              <div class="metric-head">
+                <span class="metric-label" data-i18n="metric.cpu">CPU</span>
+                <span class="metric-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="7" y="7" width="10" height="10" rx="2"></rect>
+                    <path d="M9 1v3"></path>
+                    <path d="M15 1v3"></path>
+                    <path d="M9 20v3"></path>
+                    <path d="M15 20v3"></path>
+                    <path d="M20 9h3"></path>
+                    <path d="M20 14h3"></path>
+                    <path d="M1 9h3"></path>
+                    <path d="M1 14h3"></path>
+                  </svg>
+                </span>
+              </div>
+              <strong id="cpuValue">0%</strong>
+            </article>
+            <article class="metric">
+              <div class="metric-head">
+                <span class="metric-label" data-i18n="metric.memory">Memory</span>
+                <span class="metric-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M6 19V5"></path>
+                    <path d="M10 19V5"></path>
+                    <path d="M14 19V5"></path>
+                    <path d="M18 19V5"></path>
+                    <path d="M4 8h16"></path>
+                    <path d="M4 16h16"></path>
+                  </svg>
+                </span>
+              </div>
+              <strong id="memoryValue">0%</strong>
+            </article>
+          </section>
         </section>
 
-        <section class="grid">
-          <section class="panel downloads-panel" id="downloads">
+        <section class="page" id="downloads" data-page="downloads">
+          <section class="panel downloads-panel">
             <div class="panel-head">
               <div>
                 <span data-i18n="downloads.state">Transfer state</span>
@@ -207,9 +209,11 @@
               </table>
             </div>
           </section>
+        </section>
 
-          <aside class="side">
-            <section class="panel chart-panel" id="resources">
+        <section class="page" id="resources" data-page="resources">
+          <section class="resource-layout">
+            <section class="panel chart-panel">
               <div class="panel-head">
                 <div>
                   <span data-i18n="chart.samples">Recent samples</span>
@@ -221,33 +225,6 @@
                 <span><i class="cpu"></i><span data-i18n="metric.cpu">CPU</span></span>
                 <span><i class="memory"></i><span data-i18n="metric.memory">Memory</span></span>
               </div>
-            </section>
-
-            <section class="panel component-panel" id="components">
-              <div class="panel-head">
-                <div>
-                  <span data-i18n="component.health">Service health</span>
-                  <h2 data-i18n="component.title">Components</h2>
-                </div>
-              </div>
-              <dl class="components">
-                <div>
-                  <dt data-i18n="component.downloader">Downloader</dt>
-                  <dd id="downloaderOnline">--</dd>
-                </div>
-                <div>
-                  <dt data-i18n="component.bot_api">Bot API</dt>
-                  <dd id="botApiOnline">--</dd>
-                </div>
-                <div>
-                  <dt data-i18n="component.bot">Bot</dt>
-                  <dd id="botOnline">--</dd>
-                </div>
-                <div>
-                  <dt data-i18n="component.user_chat">User / Chat</dt>
-                  <dd id="userInfo">--</dd>
-                </div>
-              </dl>
             </section>
 
             <section class="panel storage-panel">
@@ -268,90 +245,153 @@
               </div>
               <div class="bar"><span id="botApiDiskBar"></span></div>
             </section>
-          </aside>
+          </section>
         </section>
 
-        <section class="panel history-panel" id="history">
-          <div class="panel-head">
-            <div>
-              <span data-i18n="history.caption">Completed, failed, and cancelled files</span>
-              <h2 data-i18n="history.title">Download History</h2>
+        <section class="page" id="components" data-page="components">
+          <section class="panel component-panel">
+            <div class="panel-head">
+              <div>
+                <span data-i18n="component.health">Service health</span>
+                <h2 data-i18n="component.title">Components</h2>
+              </div>
             </div>
-            <strong id="historyCount">0</strong>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th data-i18n="table.file">File</th>
-                  <th data-i18n="table.status">Status</th>
-                  <th data-i18n="table.progress">Progress</th>
-                  <th data-i18n="table.completed">Completed</th>
-                  <th data-i18n="table.error">Error</th>
-                  <th data-i18n="table.actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="historyRows">
-                <tr><td colspan="6" class="empty" data-i18n="history.empty">No download history</td></tr>
-              </tbody>
-            </table>
-          </div>
+            <dl class="components">
+              <div>
+                <dt data-i18n="component.downloader">Downloader</dt>
+                <dd id="downloaderOnline">--</dd>
+              </div>
+              <div>
+                <dt data-i18n="component.bot_api">Bot API</dt>
+                <dd id="botApiOnline">--</dd>
+              </div>
+              <div>
+                <dt data-i18n="component.bot">Bot</dt>
+                <dd id="botOnline">--</dd>
+              </div>
+              <div>
+                <dt data-i18n="component.user_chat">User / Chat</dt>
+                <dd id="userInfo">--</dd>
+              </div>
+            </dl>
+          </section>
         </section>
 
-        <section class="panel settings-panel" id="settings">
-          <div class="panel-head">
-            <div>
-              <span data-i18n="settings.caption">Runtime controls</span>
-              <h2 data-i18n="settings.title">Runtime Settings</h2>
+        <section class="page" id="history" data-page="history">
+          <section class="panel history-panel">
+            <div class="panel-head">
+              <div>
+                <span data-i18n="history.caption">Completed, failed, and cancelled files</span>
+                <h2 data-i18n="history.title">Download History</h2>
+              </div>
+              <strong id="historyCount">0</strong>
             </div>
-            <button class="primary-button" id="saveHistorySettings" type="button" data-i18n="settings.save">Save</button>
-          </div>
-          <div class="settings-grid">
-            <label class="field-control" for="settingsLanguage">
-              <span data-i18n="settings.language">Bot language</span>
-              <select id="settingsLanguage">
-                <option value="en">English</option>
-                <option value="zh-CN">zh-CN</option>
-              </select>
-            </label>
-            <label class="toggle-control field-toggle" for="singleFileGroupEnabled">
-              <input id="singleFileGroupEnabled" type="checkbox">
-              <span data-i18n="settings.single_group_enabled">Single-file grouping</span>
-            </label>
-            <label class="field-control" for="singleFileGroupDelay">
-              <span data-i18n="settings.single_group_delay">Single-file grouping delay</span>
-              <input id="singleFileGroupDelay" type="number" min="0.1" max="60" step="0.1" value="1">
-            </label>
-            <label class="field-control" for="downloadStatusUpdateInterval">
-              <span data-i18n="settings.status_update_interval">Status update interval</span>
-              <input id="downloadStatusUpdateInterval" type="number" min="3" max="60" step="0.5" value="5">
-            </label>
-            <label class="field-control" for="downloadProgressPollInterval">
-              <span data-i18n="settings.progress_poll_interval">Download progress poll interval</span>
-              <input id="downloadProgressPollInterval" type="number" min="1" max="10" step="0.5" value="1">
-            </label>
-            <label class="field-control" for="adminProgressPollInterval">
-              <span data-i18n="settings.admin_poll_interval">Admin progress poll interval</span>
-              <input id="adminProgressPollInterval" type="number" min="0.2" max="10" step="0.1" value="0.5">
-            </label>
-            <label class="field-control" for="historyRetentionDays">
-              <span data-i18n="settings.retention_days">History retention days</span>
-              <input id="historyRetentionDays" type="number" min="1" step="1" value="30">
-            </label>
-            <label class="toggle-control field-toggle" for="historyRetentionUnlimited">
-              <input id="historyRetentionUnlimited" type="checkbox">
-              <span data-i18n="settings.unlimited_time">Unlimited time</span>
-            </label>
-            <label class="field-control" for="historyMaxRecords">
-              <span data-i18n="settings.max_records">Maximum history records</span>
-              <input id="historyMaxRecords" type="number" min="1" step="1" value="1000">
-            </label>
-            <label class="toggle-control field-toggle" for="historyMaxRecordsUnlimited">
-              <input id="historyMaxRecordsUnlimited" type="checkbox">
-              <span data-i18n="settings.unlimited_records">Unlimited records</span>
-            </label>
-          </div>
-          <div class="settings-status" id="historySettingsStatus">--</div>
+            <form class="history-toolbar" id="historySearchForm">
+              <label class="field-control history-query" for="historyQuery">
+                <span data-i18n="history.search">Search</span>
+                <input id="historyQuery" type="search" autocomplete="off" data-i18n-placeholder="history.search_placeholder" placeholder="File name, ID, status, or error">
+              </label>
+              <label class="field-control" for="historyStatus">
+                <span data-i18n="history.status">Status</span>
+                <select id="historyStatus">
+                  <option value="" data-i18n="history.status_all">All statuses</option>
+                  <option value="Complete" data-i18n="status.complete">Complete</option>
+                  <option value="Failed" data-i18n="status.failed">Failed</option>
+                  <option value="Cancelled" data-i18n="status.cancelled">Cancelled</option>
+                </select>
+              </label>
+              <label class="field-control" for="historyPageSize">
+                <span data-i18n="history.page_size">Page size</span>
+                <select id="historyPageSize">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <button class="primary-button" type="submit" data-i18n="history.query">Query</button>
+            </form>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-i18n="table.file">File</th>
+                    <th data-i18n="table.status">Status</th>
+                    <th data-i18n="table.progress">Progress</th>
+                    <th data-i18n="table.completed">Completed</th>
+                    <th data-i18n="table.error">Error</th>
+                    <th data-i18n="table.actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="historyRows">
+                  <tr><td colspan="6" class="empty" data-i18n="history.empty">No download history</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="historyPagination">
+              <button class="secondary-button" id="historyPrevPage" type="button" data-i18n="pagination.prev">Previous</button>
+              <span id="historyPageInfo">--</span>
+              <button class="secondary-button" id="historyNextPage" type="button" data-i18n="pagination.next">Next</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="page" id="settings" data-page="settings">
+          <section class="panel settings-panel">
+            <div class="panel-head">
+              <div>
+                <span data-i18n="settings.caption">Runtime controls</span>
+                <h2 data-i18n="settings.title">Runtime Settings</h2>
+              </div>
+              <button class="primary-button" id="saveHistorySettings" type="button" data-i18n="settings.save">Save</button>
+            </div>
+            <div class="settings-grid">
+              <label class="field-control" for="settingsLanguage">
+                <span data-i18n="settings.language">Bot language</span>
+                <select id="settingsLanguage">
+                  <option value="en">English</option>
+                  <option value="zh-CN">zh-CN</option>
+                </select>
+              </label>
+              <label class="toggle-control field-toggle" for="singleFileGroupEnabled">
+                <input id="singleFileGroupEnabled" type="checkbox">
+                <span data-i18n="settings.single_group_enabled">Single-file grouping</span>
+              </label>
+              <label class="field-control" for="singleFileGroupDelay">
+                <span data-i18n="settings.single_group_delay">Single-file grouping delay</span>
+                <input id="singleFileGroupDelay" type="number" min="0.1" max="60" step="0.1" value="1">
+              </label>
+              <label class="field-control" for="downloadStatusUpdateInterval">
+                <span data-i18n="settings.status_update_interval">Status update interval</span>
+                <input id="downloadStatusUpdateInterval" type="number" min="3" max="60" step="0.5" value="5">
+              </label>
+              <label class="field-control" for="downloadProgressPollInterval">
+                <span data-i18n="settings.progress_poll_interval">Download progress poll interval</span>
+                <input id="downloadProgressPollInterval" type="number" min="1" max="10" step="0.5" value="1">
+              </label>
+              <label class="field-control" for="adminProgressPollInterval">
+                <span data-i18n="settings.admin_poll_interval">Admin progress poll interval</span>
+                <input id="adminProgressPollInterval" type="number" min="0.2" max="10" step="0.1" value="0.5">
+              </label>
+              <label class="field-control" for="historyRetentionDays">
+                <span data-i18n="settings.retention_days">History retention days</span>
+                <input id="historyRetentionDays" type="number" min="1" step="1" value="30">
+              </label>
+              <label class="toggle-control field-toggle" for="historyRetentionUnlimited">
+                <input id="historyRetentionUnlimited" type="checkbox">
+                <span data-i18n="settings.unlimited_time">Unlimited time</span>
+              </label>
+              <label class="field-control" for="historyMaxRecords">
+                <span data-i18n="settings.max_records">Maximum history records</span>
+                <input id="historyMaxRecords" type="number" min="1" step="1" value="1000">
+              </label>
+              <label class="toggle-control field-toggle" for="historyMaxRecordsUnlimited">
+                <input id="historyMaxRecordsUnlimited" type="checkbox">
+                <span data-i18n="settings.unlimited_records">Unlimited records</span>
+              </label>
+            </div>
+            <div class="settings-status" id="historySettingsStatus">--</div>
+          </section>
         </section>
       </main>
     </div>

@@ -1,7 +1,7 @@
 const config = window.ADMIN_UI_CONFIG || {};
 const defaultRefreshIntervalMs = Number(config.refreshIntervalMs || 1000);
 const adminToken = config.adminToken || "";
-const historyLimit = 120;
+const resourceSampleLimit = 120;
 const heartbeatTtlSeconds = 6;
 const languageStorageKey = "admin-webui-language";
 const themeStorageKey = "admin-webui-theme";
@@ -18,8 +18,21 @@ let currentThemeMode = getInitialThemeMode();
 let sidebarCollapsed = getInitialSidebarCollapsed();
 let settingsFormDirty = false;
 let settingsFormInitialized = false;
+let currentPage = "overview";
+const pageNames = ["overview", "downloads", "history", "resources", "components", "settings"];
+const historyState = {
+  query: "",
+  status: "",
+  limit: 25,
+  offset: 0,
+  total: 0,
+};
 
 const el = {
+  pageTitle: document.getElementById("pageTitle"),
+  pageEyebrow: document.getElementById("pageEyebrow"),
+  navItems: Array.from(document.querySelectorAll(".nav-item")),
+  pages: Array.from(document.querySelectorAll("[data-page]")),
   languageSelect: document.getElementById("languageSelect"),
   themeSelect: document.getElementById("themeSelect"),
   sidebarToggle: document.getElementById("sidebarToggle"),
@@ -35,6 +48,13 @@ const el = {
   downloadRows: document.getElementById("downloadRows"),
   historyRows: document.getElementById("historyRows"),
   historyCount: document.getElementById("historyCount"),
+  historySearchForm: document.getElementById("historySearchForm"),
+  historyQuery: document.getElementById("historyQuery"),
+  historyStatus: document.getElementById("historyStatus"),
+  historyPageSize: document.getElementById("historyPageSize"),
+  historyPrevPage: document.getElementById("historyPrevPage"),
+  historyNextPage: document.getElementById("historyNextPage"),
+  historyPageInfo: document.getElementById("historyPageInfo"),
   settingsLanguage: document.getElementById("settingsLanguage"),
   singleFileGroupEnabled: document.getElementById("singleFileGroupEnabled"),
   singleFileGroupDelay: document.getElementById("singleFileGroupDelay"),
@@ -98,10 +118,15 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
     node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+  });
   if (el.languageSelect) {
     el.languageSelect.value = currentLanguage;
   }
   applySidebarState();
+  setActivePage(currentPage, { updateHash: false, refreshData: false });
+  renderHistoryPagination();
 }
 
 function normalizeThemeMode(mode) {
@@ -198,6 +223,34 @@ function formatStatus(status) {
   return translated === key ? String(status || "") : translated;
 }
 
+function getPageFromHash() {
+  const page = String(window.location.hash || "").replace(/^#/, "").trim();
+  return pageNames.includes(page) ? page : "overview";
+}
+
+function setActivePage(page, options = {}) {
+  const nextPage = pageNames.includes(page) ? page : "overview";
+  const updateHash = options.updateHash !== false;
+  const refreshData = Boolean(options.refreshData);
+  currentPage = nextPage;
+  el.pages.forEach((node) => {
+    node.classList.toggle("active", node.dataset.page === nextPage);
+  });
+  el.navItems.forEach((node) => {
+    const isActive = node.getAttribute("href") === `#${nextPage}`;
+    node.classList.toggle("active", isActive);
+    if (isActive) node.setAttribute("aria-current", "page");
+    else node.removeAttribute("aria-current");
+  });
+  if (el.pageTitle) el.pageTitle.textContent = t(`page.${nextPage}.title`);
+  if (el.pageEyebrow) el.pageEyebrow.textContent = t(`page.${nextPage}.caption`);
+  if (updateHash && window.location.hash !== `#${nextPage}`) {
+    window.history.pushState(null, "", `#${nextPage}`);
+  }
+  renderChart();
+  if (refreshData) refresh(true);
+}
+
 const actionIcons = {
   cancel: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>',
   retry: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>',
@@ -255,9 +308,15 @@ function formatDateTime(value) {
 function renderHistory(history) {
   const items = (history && history.items) || [];
   const summary = (history && history.summary) || {};
+  historyState.total = Number(summary.total || 0);
+  historyState.offset = Number(summary.offset || historyState.offset || 0);
+  historyState.limit = Number(summary.limit || historyState.limit || 25);
+  historyState.query = String(summary.query ?? historyState.query ?? "");
+  historyState.status = String(summary.status ?? historyState.status ?? "");
   if (el.historyCount) {
-    el.historyCount.textContent = t("history.count", { count: summary.total || 0 });
+    el.historyCount.textContent = t("history.count", { count: historyState.total });
   }
+  renderHistoryPagination();
   if (!el.historyRows) return;
   if (!items.length) {
     el.historyRows.innerHTML = `<tr><td colspan="6" class="empty">${t("history.empty")}</td></tr>`;
@@ -290,6 +349,25 @@ function renderHistory(history) {
       </tr>
     `;
   }).join("");
+}
+
+function renderHistoryPagination() {
+  if (!el.historyPageInfo) return;
+  const limit = Math.max(1, Number(historyState.limit || 25));
+  const total = Math.max(0, Number(historyState.total || 0));
+  const pageCount = Math.max(1, Math.ceil(total / limit));
+  const current = total > 0 ? Math.floor(Number(historyState.offset || 0) / limit) + 1 : 1;
+  el.historyPageInfo.textContent = t("history.page_info", {
+    page: Math.min(current, pageCount),
+    pages: pageCount,
+    total,
+  });
+  if (el.historyPrevPage) {
+    el.historyPrevPage.disabled = Number(historyState.offset || 0) <= 0;
+  }
+  if (el.historyNextPage) {
+    el.historyNextPage.disabled = Number(historyState.offset || 0) + limit >= total;
+  }
 }
 
 function markSettingsDirty() {
@@ -395,7 +473,7 @@ function drawSeries(ctx, values, color, padding, chartWidth, chartHeight) {
   ctx.lineWidth = 2;
   ctx.beginPath();
   values.forEach((value, index) => {
-    const x = padding.left + (chartWidth * index) / (historyLimit - 1);
+    const x = padding.left + (chartWidth * index) / (resourceSampleLimit - 1);
     const y = padding.top + chartHeight - (clampPercent(value) / 100) * chartHeight;
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
@@ -446,7 +524,7 @@ function render(data, history) {
     cpu: Number(resources.cpu_percent || 0),
     memory: Number(memory.used_percent || 0),
   });
-  while (samples.length > historyLimit) samples.shift();
+  while (samples.length > resourceSampleLimit) samples.shift();
   renderChart();
 }
 
@@ -488,7 +566,7 @@ async function saveHistorySettings() {
     applyHistorySettings(data, { force: true });
     renderHistorySettingsStatus(data);
     if (el.historySettingsStatus) el.historySettingsStatus.textContent = t("settings.saved");
-    await refresh();
+    await refresh(true);
   } catch (error) {
     if (el.historySettingsStatus) {
       el.historySettingsStatus.textContent = t("settings.save_failed", { message: error.message });
@@ -509,7 +587,7 @@ async function runDownloadAction(button) {
   try {
     const response = await postJson("/api/download-action", payload);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    await refresh();
+    await refresh(true);
   } catch (error) {
     setConnection(false, t("action.failed", { message: error.message }));
   } finally {
@@ -539,13 +617,22 @@ async function sendHeartbeat() {
   }
 }
 
-async function refresh() {
-  if (!isLiveRefreshActive() || refreshInFlight) return;
+function buildHistoryUrl() {
+  const params = new URLSearchParams();
+  params.set("limit", String(Math.max(1, Number(historyState.limit || 25))));
+  params.set("offset", String(Math.max(0, Number(historyState.offset || 0))));
+  if (historyState.query) params.set("q", historyState.query);
+  if (historyState.status) params.set("status", historyState.status);
+  return `/api/download-history?${params.toString()}`;
+}
+
+async function refresh(force = false) {
+  if ((!force && !isLiveRefreshActive()) || refreshInFlight) return;
   refreshInFlight = true;
   try {
     const [response, historyResponse] = await Promise.all([
       fetch("/api/overview", { headers: requestHeaders() }),
-      fetch("/api/download-history?limit=50", { headers: requestHeaders() }),
+      fetch(buildHistoryUrl(), { headers: requestHeaders() }),
     ]);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     if (!historyResponse.ok) throw new Error(`HTTP ${historyResponse.status}`);
@@ -601,6 +688,10 @@ function startLoops() {
 
 el.refreshInterval.value = String(getSavedRefreshInterval());
 el.refreshEnabled.checked = getSavedRefreshEnabled();
+currentPage = getPageFromHash();
+if (el.historyPageSize) {
+  el.historyPageSize.value = String(historyState.limit);
+}
 if (el.languageSelect) {
   el.languageSelect.value = currentLanguage;
   el.languageSelect.addEventListener("change", () => {
@@ -608,10 +699,22 @@ if (el.languageSelect) {
     localStorage.setItem(languageStorageKey, currentLanguage);
     applyLanguage();
     renderChart();
-    refresh();
+    refresh(true);
   });
 }
 applyLanguage();
+el.navItems.forEach((item) => {
+  item.addEventListener("click", (event) => {
+    const href = item.getAttribute("href") || "";
+    const page = href.replace(/^#/, "");
+    if (!pageNames.includes(page)) return;
+    event.preventDefault();
+    setActivePage(page, { updateHash: true, refreshData: true });
+  });
+});
+window.addEventListener("hashchange", () => {
+  setActivePage(getPageFromHash(), { updateHash: false, refreshData: true });
+});
 if (el.sidebarToggle) {
   el.sidebarToggle.addEventListener("click", () => {
     sidebarCollapsed = !sidebarCollapsed;
@@ -663,6 +766,42 @@ if (el.historyMaxRecordsUnlimited) {
 });
 if (el.saveHistorySettings) {
   el.saveHistorySettings.addEventListener("click", saveHistorySettings);
+}
+if (el.historySearchForm) {
+  el.historySearchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    historyState.query = el.historyQuery ? el.historyQuery.value.trim() : "";
+    historyState.status = el.historyStatus ? el.historyStatus.value : "";
+    historyState.limit = el.historyPageSize ? Number(el.historyPageSize.value || 25) : 25;
+    historyState.offset = 0;
+    refresh(true);
+  });
+}
+if (el.historyStatus) {
+  el.historyStatus.addEventListener("change", () => {
+    historyState.status = el.historyStatus.value;
+    historyState.offset = 0;
+    refresh(true);
+  });
+}
+if (el.historyPageSize) {
+  el.historyPageSize.addEventListener("change", () => {
+    historyState.limit = Number(el.historyPageSize.value || 25);
+    historyState.offset = 0;
+    refresh(true);
+  });
+}
+if (el.historyPrevPage) {
+  el.historyPrevPage.addEventListener("click", () => {
+    historyState.offset = Math.max(0, Number(historyState.offset || 0) - Math.max(1, Number(historyState.limit || 25)));
+    refresh(true);
+  });
+}
+if (el.historyNextPage) {
+  el.historyNextPage.addEventListener("click", () => {
+    historyState.offset = Number(historyState.offset || 0) + Math.max(1, Number(historyState.limit || 25));
+    refresh(true);
+  });
 }
 if (el.downloadRows) {
   el.downloadRows.addEventListener("click", (event) => {

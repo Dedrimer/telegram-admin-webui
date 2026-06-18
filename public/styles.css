@@ -285,6 +285,14 @@ body {
   margin-bottom: 18px;
 }
 
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
 .top-actions {
   display: flex;
   align-items: center;
@@ -384,20 +392,30 @@ h2 {
   background: var(--red-soft);
 }
 
-.primary-button {
+.primary-button,
+.secondary-button {
   min-height: 34px;
   border: 0;
   border-radius: 14px;
   padding: 0 14px;
-  color: #fff;
-  background: var(--primary);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.primary-button:disabled {
+.primary-button {
+  color: #fff;
+  background: var(--primary);
+}
+
+.secondary-button {
+  color: var(--ink);
+  background: var(--control-bg);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -539,6 +557,13 @@ h2 {
   gap: 18px;
 }
 
+.resource-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .panel {
   overflow: hidden;
 }
@@ -552,7 +577,7 @@ h2 {
 }
 
 .table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
   padding: 0 12px 16px;
 }
 
@@ -770,7 +795,7 @@ dd {
 
 .history-panel,
 .settings-panel {
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .history-panel .panel-head strong {
@@ -785,6 +810,34 @@ dd {
   white-space: nowrap;
   color: var(--muted);
   font-size: 13px;
+}
+
+.history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, 0.22fr) minmax(120px, 0.16fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 8px 24px 12px;
+}
+
+.history-toolbar .primary-button {
+  min-height: 38px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 22px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pagination span {
+  min-width: 180px;
+  text-align: center;
 }
 
 .settings-grid {
@@ -920,7 +973,8 @@ dd {
 @media (max-width: 960px) {
   .topbar,
   .hero-card,
-  .grid {
+  .grid,
+  .resource-layout {
     display: block;
   }
 
@@ -947,6 +1001,10 @@ dd {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-toolbar {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -1011,5 +1069,20 @@ dd {
 
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .history-toolbar {
+    grid-template-columns: 1fr;
+    padding: 8px 16px 12px;
+  }
+
+  .pagination {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 0 16px 18px;
+  }
+
+  .pagination span {
+    min-width: 0;
   }
 }
