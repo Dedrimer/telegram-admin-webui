@@ -3,6 +3,7 @@ const defaultRefreshIntervalMs = Number(config.refreshIntervalMs || 1000);
 const adminToken = config.adminToken || "";
 const resourceSampleLimit = 120;
 const heartbeatTtlSeconds = 6;
+const downloadFileNameDisplayLimit = 140;
 const languageStorageKey = "admin-webui-language";
 const themeStorageKey = "admin-webui-theme";
 const sidebarCollapsedStorageKey = "admin-webui-sidebar-collapsed";
@@ -27,6 +28,11 @@ const historyState = {
   offset: 0,
   total: 0,
 };
+const downloadState = {
+  limit: 5,
+  offset: 0,
+  total: 0,
+};
 
 const el = {
   pageTitle: document.getElementById("pageTitle"),
@@ -46,6 +52,9 @@ const el = {
   memoryValue: document.getElementById("memoryValue"),
   lastUpdated: document.getElementById("lastUpdated"),
   downloadRows: document.getElementById("downloadRows"),
+  downloadPrevPage: document.getElementById("downloadPrevPage"),
+  downloadNextPage: document.getElementById("downloadNextPage"),
+  downloadPageInfo: document.getElementById("downloadPageInfo"),
   historyRows: document.getElementById("historyRows"),
   historyCount: document.getElementById("historyCount"),
   historySearchForm: document.getElementById("historySearchForm"),
@@ -217,6 +226,13 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function truncateFileName(value, limit = downloadFileNameDisplayLimit) {
+  const text = String(value ?? "");
+  if (text.length <= limit) return text;
+  const keep = Math.max(8, Math.floor((limit - 3) / 2));
+  return `${text.slice(0, keep)}...${text.slice(-keep)}`;
+}
+
 function formatStatus(status) {
   const key = `status.${String(status || "").trim().toLowerCase()}`;
   const translated = t(key);
@@ -266,6 +282,16 @@ function actionButton(action, target, item, labelKey) {
 
 function renderDownloads(downloads) {
   const items = downloads.items || [];
+  const summary = downloads.summary || {};
+  downloadState.total = Number(summary.total || 0);
+  downloadState.offset = Number(summary.offset || downloadState.offset || 0);
+  downloadState.limit = Number(summary.limit || downloadState.limit || 5);
+  if (!items.length && downloadState.total > 0 && downloadState.offset >= downloadState.total) {
+    downloadState.offset = Math.max(0, downloadState.total - downloadState.limit);
+    window.setTimeout(() => refresh(true), 0);
+    return;
+  }
+  renderDownloadPagination();
   if (!items.length) {
     el.downloadRows.innerHTML = `<tr><td colspan="6" class="empty">${t("downloads.empty")}</td></tr>`;
     return;
@@ -279,10 +305,11 @@ function renderDownloads(downloads) {
       actionButton("retry", "download", item, "action.retry"),
       actionButton("delete", "download", item, "action.delete"),
     ].join("");
+    const displayName = truncateFileName(item.file_name);
     return `
       <tr>
         <td class="file">
-          <div class="file-name" title="${escapeHtml(item.file_name)}">${escapeHtml(item.file_name)}</div>
+          <div class="file-name" title="${escapeHtml(item.file_name)}">${escapeHtml(displayName)}</div>
           <div class="file-meta">${formatBytes(item.downloaded_bytes)} / ${formatBytes(item.file_size_bytes)}</div>
         </td>
         <td><span class="badge${statusClass}">${escapeHtml(formatStatus(item.status))}</span></td>
@@ -296,6 +323,25 @@ function renderDownloads(downloads) {
       </tr>
     `;
   }).join("");
+}
+
+function renderDownloadPagination() {
+  if (!el.downloadPageInfo) return;
+  const limit = Math.max(1, Number(downloadState.limit || 5));
+  const total = Math.max(0, Number(downloadState.total || 0));
+  const pageCount = Math.max(1, Math.ceil(total / limit));
+  const current = total > 0 ? Math.floor(Number(downloadState.offset || 0) / limit) + 1 : 1;
+  el.downloadPageInfo.textContent = t("downloads.page_info", {
+    page: Math.min(current, pageCount),
+    pages: pageCount,
+    total,
+  });
+  if (el.downloadPrevPage) {
+    el.downloadPrevPage.disabled = Number(downloadState.offset || 0) <= 0;
+  }
+  if (el.downloadNextPage) {
+    el.downloadNextPage.disabled = Number(downloadState.offset || 0) + limit >= total;
+  }
 }
 
 function formatDateTime(value) {
@@ -626,18 +672,29 @@ function buildHistoryUrl() {
   return `/api/download-history?${params.toString()}`;
 }
 
+function buildDownloadsUrl() {
+  const params = new URLSearchParams();
+  params.set("limit", String(Math.max(1, Number(downloadState.limit || 5))));
+  params.set("offset", String(Math.max(0, Number(downloadState.offset || 0))));
+  return `/api/downloads?${params.toString()}`;
+}
+
 async function refresh(force = false) {
   if ((!force && !isLiveRefreshActive()) || refreshInFlight) return;
   refreshInFlight = true;
   try {
-    const [response, historyResponse] = await Promise.all([
+    const [response, downloadsResponse, historyResponse] = await Promise.all([
       fetch("/api/overview", { headers: requestHeaders() }),
+      fetch(buildDownloadsUrl(), { headers: requestHeaders() }),
       fetch(buildHistoryUrl(), { headers: requestHeaders() }),
     ]);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!downloadsResponse.ok) throw new Error(`HTTP ${downloadsResponse.status}`);
     if (!historyResponse.ok) throw new Error(`HTTP ${historyResponse.status}`);
     const data = await response.json();
+    const downloads = await downloadsResponse.json();
     const history = await historyResponse.json();
+    data.downloads = downloads;
     render(data, history);
     setConnection(true, t("connection.connected"));
   } catch (error) {
@@ -800,6 +857,18 @@ if (el.historyPrevPage) {
 if (el.historyNextPage) {
   el.historyNextPage.addEventListener("click", () => {
     historyState.offset = Number(historyState.offset || 0) + Math.max(1, Number(historyState.limit || 25));
+    refresh(true);
+  });
+}
+if (el.downloadPrevPage) {
+  el.downloadPrevPage.addEventListener("click", () => {
+    downloadState.offset = Math.max(0, Number(downloadState.offset || 0) - Math.max(1, Number(downloadState.limit || 5)));
+    refresh(true);
+  });
+}
+if (el.downloadNextPage) {
+  el.downloadNextPage.addEventListener("click", () => {
+    downloadState.offset = Number(downloadState.offset || 0) + Math.max(1, Number(downloadState.limit || 5));
     refresh(true);
   });
 }
