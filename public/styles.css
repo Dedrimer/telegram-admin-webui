@@ -62,6 +62,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--page);
   color: var(--ink);
   font-family: Inter, "Segoe UI", Arial, sans-serif;
@@ -664,16 +665,18 @@ td.file {
 }
 
 .actions-cell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  white-space: nowrap;
 }
 
 .table-action {
   display: inline-grid;
+  vertical-align: middle;
   place-items: center;
   width: 30px;
+  min-width: 30px;
   height: 30px;
+  min-height: 30px;
+  aspect-ratio: 1;
   border: 0;
   border-radius: 10px;
   padding: 0;
@@ -682,9 +685,16 @@ td.file {
   cursor: pointer;
 }
 
+.table-action + .table-action {
+  margin-left: 6px;
+}
+
 .table-action svg {
+  display: block;
   width: 16px;
+  min-width: 16px;
   height: 16px;
+  min-height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -933,8 +943,12 @@ dd {
 
   .sidebar {
     position: static;
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
     height: auto;
     padding: 16px 18px;
+    overflow: hidden;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
@@ -959,7 +973,32 @@ dd {
     box-shadow: none;
   }
 
-  .nav-list,
+  .nav-list {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-top: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .nav-item > span:first-child {
+    width: 7px;
+    height: 7px;
+  }
+
   .sidebar-card {
     display: none;
   }
